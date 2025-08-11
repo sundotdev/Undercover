@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>เกม Undercover ภาษาไทย (วงกลม + ลำดับพูด)</title>
+<title>Undercover</title>
 
 <!-- Bootstrap 5 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-
 <!-- FontAwesome 6 -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
 
@@ -57,11 +56,19 @@
     background-color: #27ae60;
     color: white;
   }
+  #voteList li {
+    cursor: pointer;
+  }
+  #voteList li.voted {
+    background-color: #f39c12;
+    color: black;
+    font-weight: 700;
+  }
 </style>
 </head>
 <body>
 
-<h1><i class="fa-solid fa-mask"></i> เกม Undercover ภาษาไทย (วงกลม + ลำดับพูด)</h1>
+<h1><i class="fa-solid fa-mask"></i> Undercover</h1>
 
 <div id="setup" class="mb-4">
   <div class="input-group mb-2">
@@ -81,6 +88,7 @@
   </div>
 
   <button onclick="startGame()" id="startBtn" class="btn btn-warning btn-wide" disabled><i class="fa-solid fa-play"></i> เริ่มเกม</button>
+  <div id="loadingMsg" class="text-center mt-2"></div>
 </div>
 
 <div id="game" class="d-none">
@@ -117,8 +125,10 @@
 <script>
 let players = [];
 let roles = [];
+let playerWords = []; // เก็บคำของแต่ละคน
 let currentPlayerIndex = 0;
 let roundNumber = 1;
+let categoriesData = null; // โหลดจาก data.json
 
 const playerListEl = document.getElementById('playerList');
 const startBtn = document.getElementById('startBtn');
@@ -134,6 +144,22 @@ const votingSection = document.getElementById('votingSection');
 const voteListEl = document.getElementById('voteList');
 const resultSection = document.getElementById('resultSection');
 const voteResultEl = document.getElementById('voteResult');
+const loadingMsg = document.getElementById('loadingMsg');
+
+async function loadCategories() {
+  loadingMsg.textContent = 'กำลังโหลดข้อมูลหมวดหมู่คำ...';
+  try {
+    const res = await fetch('data.json'); // ถ้าใช้ url อื่นแก้ที่นี่
+    if(!res.ok) throw new Error('โหลดไฟล์ data.json ไม่สำเร็จ');
+    const json = await res.json();
+    categoriesData = json.categories;
+    loadingMsg.textContent = '';
+    checkStartButton();
+  } catch(e) {
+    loadingMsg.textContent = 'โหลดข้อมูลหมวดหมู่คำล้มเหลว';
+    console.error(e);
+  }
+}
 
 function addPlayer() {
   const input = document.getElementById('playerNameInput');
@@ -175,7 +201,7 @@ function checkStartButton() {
   const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
   const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
   const totalNeeded = mrWhiteCount + undercoverCount;
-  if(players.length >= totalNeeded + 1 && mrWhiteCount >=1 && undercoverCount >=1) {
+  if(players.length >= totalNeeded + 1 && mrWhiteCount >=1 && undercoverCount >=1 && categoriesData !== null) {
     startBtn.disabled = false;
   } else {
     startBtn.disabled = true;
@@ -202,8 +228,56 @@ function roleName(role) {
   }
 }
 
+function flattenCategories() {
+  // แปลง categoriesData (ที่มี array ซ้อน array) ให้เป็น array แบนแยกคำเป็นคู่ ๆ 
+  // return {categoryName: [ [คำ1,คำ2], ... ] }
+  let flat = {};
+  for(const [cat, groups] of Object.entries(categoriesData)) {
+    flat[cat] = [];
+    groups.forEach(group => {
+      if(Array.isArray(group) && group.length >= 2) {
+        flat[cat].push(group);
+      }
+    });
+  }
+  return flat;
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function getRandomWordPair(flatCats, usedPairsSet) {
+  // หาหมวดหมู่+กลุ่มคำคู่ ที่ยังไม่เคยใช้ (โดยไม่ซ้ำคู่คำ)
+  // คืนเป็น array [คำ1, คำ2]
+  let catKeys = Object.keys(flatCats);
+  let attempts = 0;
+  while(attempts < 1000) {
+    let cat = catKeys[getRandomInt(catKeys.length)];
+    let groups = flatCats[cat];
+    if(groups.length === 0) {
+      attempts++;
+      continue;
+    }
+    let pair = groups[getRandomInt(groups.length)];
+    let pairKey = pair.join('|');
+    if(!usedPairsSet.has(pairKey)) {
+      usedPairsSet.add(pairKey);
+      return pair;
+    }
+    attempts++;
+  }
+  // fallback ถ้าเจอซ้ำหมดแล้ว ให้สุ่มคู่ใดคู่หนึ่ง
+  let allPairs = [];
+  catKeys.forEach(c=>{
+    allPairs.push(...flatCats[c]);
+  });
+  return allPairs[getRandomInt(allPairs.length)];
+}
+
 function assignRoles() {
   roles = [];
+  playerWords = [];
   const totalPlayers = players.length;
   const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
   const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
@@ -221,29 +295,42 @@ function assignRoles() {
   while(roles[0] === 'มิสเตอร์ไวท์') {
     roles = shuffleArray(roles);
   }
+
+  // แจกคำให้ผู้เล่น
+  const flatCats = flattenCategories();
+  const usedPairsSet = new Set();
+
+  for(let r of roles) {
+    let pair = getRandomWordPair(flatCats, usedPairsSet);
+    // เลือกคำข้างในคู่ให้เหมาะกับบทบาท
+    // สมมติมิสเตอร์ไวท์ กับ สายลับ ได้คำที่คล้ายกัน (ข้างซ้าย-ขวา)
+    // พลเมือง ได้คำที่ต่างกับสายลับ (ฝั่งตรงข้าม)
+    // แบ่งคร่าวๆ แบบนี้:
+
+    if(r === 'มิสเตอร์ไวท์') {
+      // ไอขาว ได้คำฝั่งซ้าย (index 0)
+      playerWords.push(pair[0]);
+    } else if(r === 'สายลับ') {
+      // สายลับ ได้คำฝั่งขวา (index 1)
+      playerWords.push(pair[1]);
+    } else {
+      // พลเมือง ได้คำจากหมวดอาหารเสริม (ถ้าเจอหมวดอาหารก็เอาอีกคู่)
+      // แต่ตอนนี้เอาไว้แบบง่ายให้ได้คำสุ่มจากหมวดอื่นที่ไม่ใช่หมวดที่มิสเตอร์ไวท์กับสายลับได้
+      // ถ้าอยากซับซ้อนต้องจัดหมวดเพิ่ม ซึ่งขอไม่ใส่ให้ยาวเกิน
+
+      // ถ้าคำนี้ซ้ำกับที่แจกไปแล้ว ให้สุ่มคำใหม่
+      let word = pair[0];
+      if(playerWords.includes(word)) {
+        // ถ้าเจอซ้ำ สุ่มใหม่จากหมวดแฟชั่น (แทน)
+        if(flatCats["แฟชั่น"] && flatCats["แฟชั่น"].length > 0) {
+          let altPair = flatCats["แฟชั่น"][getRandomInt(flatCats["แฟชั่น"].length)];
+          word = altPair[getRandomInt(2)];
+        }
+      }
+      playerWords.push(word);
+    }
+  }
   return true;
-}
-
-function startGame() {
-  if(!assignRoles()) return;
-  currentPlayerIndex = 0;
-  roundNumber = 1;
-
-  setupDiv.classList.add('d-none');
-  gameDiv.classList.remove('d-none');
-
-  roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
-
-  playerRoleEl.textContent = '';
-  nextPlayerBtn.classList.remove('d-none');
-  showRoleBtn.classList.add('d-none');
-  discussionSection.classList.add('d-none');
-  votingSection.classList.add('d-none');
-  resultSection.classList.add('d-none');
-  nextPlayerBtn.disabled = false;
-  showingRole = false;
-
-  renderSpeakingOrderBoxes();
 }
 
 function renderSpeakingOrderBoxes() {
@@ -284,32 +371,34 @@ function showRole() {
   let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
   const playerPos = (startIndex + currentPlayerIndex) % players.length;
   const role = roles[playerPos];
-  playerRoleEl.innerHTML += `<div class="mt-3">บทบาทของคุณคือ: <b>${roleName(role)}</b></div>`;
+  const word = playerWords[playerPos] || '???';
+
+  playerRoleEl.innerHTML = `<div>บทบาทของคุณคือ: <b>${roleName(role)}</b></div><div>คำที่ได้: <b>${word}</b></div>`;
+
   showingRole = true;
   currentPlayerIndex++;
   nextPlayerBtn.disabled = false;
   showRoleBtn.classList.add('d-none');
 }
 
-let votes = {};
+let voteSelections = new Set();
 
 function startVote() {
   discussionSection.classList.add('d-none');
   votingSection.classList.remove('d-none');
+  voteSelections.clear();
   voteListEl.innerHTML = '';
-  votes = {};
-
-  players.forEach(p => {
+  players.forEach((p, i) => {
     const li = document.createElement('li');
-    li.className = 'list-group-item';
     li.textContent = p;
+    li.className = 'list-group-item';
     li.onclick = () => {
-      if(li.classList.contains('voted')) {
+      if(voteSelections.has(i)) {
+        voteSelections.delete(i);
         li.classList.remove('voted');
-        delete votes[p];
       } else {
+        voteSelections.add(i);
         li.classList.add('voted');
-        votes[p] = (votes[p]||0) + 1;
       }
     };
     voteListEl.appendChild(li);
@@ -317,75 +406,64 @@ function startVote() {
 }
 
 function confirmVote() {
-  if(Object.keys(votes).length === 0) {
-    alert('กรุณาเลือกผู้ต้องสงสัยก่อนยืนยันโหวต');
+  if(voteSelections.size === 0) {
+    alert('กรุณาเลือกผู้เล่นที่ต้องการโหวต');
     return;
   }
-  let maxVotes = 0;
-  let votedPlayers = [];
-  for(const [p,count] of Object.entries(votes)) {
-    if(count > maxVotes) {
-      maxVotes = count;
-      votedPlayers = [p];
-    } else if(count === maxVotes) {
-      votedPlayers.push(p);
-    }
-  }
-
   votingSection.classList.add('d-none');
   resultSection.classList.remove('d-none');
 
-  let resultHTML = '';
-  votedPlayers.forEach(p => {
-    const idx = players.indexOf(p);
-    const role = roles[idx];
-    // แสดงเฉพาะบทบาท ไม่แสดงคำ
-    resultHTML += `<p><b>${p}</b> ได้รับโหวต ${maxVotes} ครั้ง — บทบาท: <b>${roleName(role)}</b></p>`;
+  let found = false;
+  let wrongVotes = [];
+
+  voteSelections.forEach(i => {
+    if(roles[i] === 'มิสเตอร์ไวท์' || roles[i] === 'สายลับ') {
+      found = true;
+    } else {
+      wrongVotes.push(players[i]);
+    }
   });
 
-  voteResultEl.innerHTML = resultHTML;
-
-  // เกมจบถ้าเจอ ไอขาว หรือ สายลับ
-  const isGameOver = votedPlayers.some(p => {
-    const idx = players.indexOf(p);
-    const role = roles[idx];
-    return role === 'มิสเตอร์ไวท์' || role === 'สายลับ';
-  });
-
-  if(isGameOver) {
-    voteResultEl.innerHTML += '<p class="text-danger fw-bold">เกมจบ! ไอขาว หรือ สายลับถูกจับได้แล้ว</p>';
-    nextPlayerBtn.disabled = true;
+  let voteText = '';
+  if(found) {
+    voteText += `<p><b>ผลโหวตเจอ ไอขาว หรือ สายลับ! เกมจบ</b></p>`;
   } else {
-    voteResultEl.innerHTML += '<p class="text-success fw-bold">เกมยังไม่จบ! ผู้เล่นที่โหวตผิดดื่มเหล้า 1 ดริ้ง</p>';
+    voteText += `<p><b>โหวตผิด! คนที่โหวตผิดต้องดื่ม 1 ดริ้ง</b></p>`;
+    voteText += `<p>ผู้เล่นที่โหวตผิด: ${wrongVotes.join(', ')}</p>`;
   }
+
+  voteText += `<h5>บทบาทของผู้เล่น:</h5><ul>`;
+  players.forEach((p,i) => {
+    voteText += `<li>${p} = ${roleName(roles[i])}</li>`;
+  });
+  voteText += `</ul>`;
+
+  voteResultEl.innerHTML = voteText;
 }
 
 function nextRound() {
   roundNumber++;
+  currentPlayerIndex = 0;
   if(!assignRoles()) {
     alert('ไม่สามารถเริ่มรอบใหม่ได้');
     resetGame();
     return;
   }
-  currentPlayerIndex = 0;
+  renderSpeakingOrderBoxes();
   roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
-
   playerRoleEl.textContent = '';
-  nextPlayerBtn.classList.remove('d-none');
+  nextPlayerBtn.disabled = false;
   showRoleBtn.classList.add('d-none');
   discussionSection.classList.add('d-none');
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
-  nextPlayerBtn.disabled = false;
-  showingRole = false;
-
-  renderSpeakingOrderBoxes();
 }
 
 function resetGame() {
   if(!confirm('ต้องการเริ่มเกมใหม่? ข้อมูลทั้งหมดจะถูกลบ')) return;
   players = [];
   roles = [];
+  playerWords = [];
   currentPlayerIndex = 0;
   roundNumber = 1;
   setupDiv.classList.remove('d-none');
@@ -400,9 +478,25 @@ function resetGame() {
   showRoleBtn.classList.add('d-none');
 }
 
-renderPlayerList();
-checkStartButton();
+function startGame() {
+  if(!assignRoles()) return;
+  setupDiv.classList.add('d-none');
+  gameDiv.classList.remove('d-none');
+  roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
+  renderSpeakingOrderBoxes();
+  currentPlayerIndex = 0;
+  playerRoleEl.textContent = '';
+  nextPlayerBtn.disabled = false;
+  showRoleBtn.classList.add('d-none');
+  discussionSection.classList.add('d-none');
+  votingSection.classList.add('d-none');
+  resultSection.classList.add('d-none');
+  showNextPlayerName();
+}
 
+window.onload = () => {
+  loadCategories();
+};
 </script>
 
 </body>
