@@ -281,79 +281,93 @@ function toggleVote(name, liEl) {
 }
 
 function confirmVote() {
-  if (voteSelections.size === 0) return alert('Please select at least one player to vote.');
+  if (voteSelections.size === 0) {
+    alert('Please select player(s) to vote');
+    return;
+  }
 
   const voteTarget = document.querySelector('input[name="voteTarget"]:checked').value;
 
-  // หาผู้เล่นที่มี role นั้น
-  const indicesOfTarget = roles
-    .map((r, i) => (r === voteTarget ? i : -1))
-    .filter(i => i !== -1);
-  const targetPlayers = indicesOfTarget.map(i => players[i]);
+  votingSection.classList.add('d-none');
+  resultSection.classList.remove('d-none');
 
-  // เช็คว่าผู้เล่นที่โหวตตรงกับ target ทั้งหมดหรือไม่
-  let foundTarget = true;
-  for (let tp of targetPlayers) {
-    if (!voteSelections.has(tp)) {
-      foundTarget = false;
-      break;
+  let foundTarget = false;
+  let wrongVotes = [];
+
+  // เก็บ index ผู้เล่นที่จะถูกลบ (ถูกโหวต)
+  let removedIndexes = [];
+
+  voteSelections.forEach(i => {
+    if (roles[i] === voteTarget) {
+      foundTarget = true;
+      if (roles[i] === 'MR.WHITE') foundMrWhiteCount++;
+      if (roles[i] === 'UNDERCOVER') foundUndercoverCount++;
+      removedIndexes.push(i); // คนถูกจับออก
+    } else {
+      wrongVotes.push(players[i]);
     }
-  }
-  // เช็คว่าโหวตเกินหรือน้อยกว่า target หรือไม่
-  if (voteSelections.size !== targetPlayers.length) foundTarget = false;
+  });
 
-  // นับจำนวนที่จับได้
-  if (foundTarget) {
-    if (voteTarget === 'MR.WHITE') foundMrWhiteCount++;
-    else if (voteTarget === 'UNDERCOVER') foundUndercoverCount++;
+  // ลบผู้เล่นและบทบาทของคนที่ถูกจับออก เรียงจาก index มากไปน้อยเพื่อลบไม่ผิดตำแหน่ง
+  removedIndexes.sort((a,b) => b - a);
+  for (let idx of removedIndexes) {
+    players.splice(idx, 1);
+    roles.splice(idx, 1);
+    playerWords.splice(idx,1);
   }
 
-  // แสดงผลลัพธ์โหวต
   let voteText = '';
+
   if (foundTarget) {
     if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
       voteText += `<p><b>Success! You found all <span class="role-mrwhite">MR.WHITE</span> and <span class="role-undercover">UNDERCOVER</span>. The game ends.</b></p>`;
-      nextRoundBtn.textContent = 'Play Again';
+      nextRoundBtn.textContent = 'เล่นรอบใหม่';
+      nextRoundBtn.style.display = 'inline-block';
     } else {
       voteText += `<p><b>You found some ${voteTarget}, but need to find all MR.WHITE and UNDERCOVER to end the game. Continue playing.</b></p>`;
       nextRoundBtn.textContent = 'Next Round';
+      nextRoundBtn.style.display = 'inline-block';
     }
   } else {
     voteText += `<p><b>Wrong vote! Those who voted wrong must drink 1 shot.</b></p>`;
-    voteText += `<p>Players voted wrong: ${[...voteSelections].join(', ')}</p>`;
+    voteText += `<p>Players voted wrong: ${wrongVotes.join(', ')}</p>`;
     nextRoundBtn.textContent = 'Next Round';
+    nextRoundBtn.style.display = 'inline-block';
   }
 
-  voteResultEl.innerHTML = voteText;
+  voteText += `<h5>Roles of voted players:</h5><ul>`;
+  voteSelections.forEach(i => {
+    voteText += `<li>${players[i] || '(ออกจากเกมแล้ว)'} = <span class="${roleClass(roles[i])}">${roleName(roles[i])}</span></li>`;
+  });
+  voteText += `</ul>`;
 
-  votingSection.classList.add('d-none');
-  resultSection.classList.remove('d-none');
-  nextRoundBtn.style.display = 'inline-block';
+  voteResultEl.innerHTML = voteText;
 }
 
-function nextRound() {
+nextRoundBtn.onclick = () => {
   if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
-    alert('Game over! You found all MR.WHITE and UNDERCOVER.');
     resetGame();
     return;
   }
-
+  if (players.length < (totalMrWhite + totalUndercover + 1)) {
+    alert('ไม่สามารถเล่นต่อได้ เนื่องจากผู้เล่นน้อยเกินไป');
+    resetGame();
+    return;
+  }
+  
   roundNumber++;
   currentPlayerIndex = 0;
 
-  if (!assignRoles()) {
-    alert('Cannot start new round');
-    resetGame();
-    return;
-  }
-
+  // เรียงลำดับการพูดใหม่ตามผู้เล่นที่เหลือ
+  // roles และ playerWords ยังเหมือนเดิม (ไม่เปลี่ยนคำหมวดหมู่)
+  
   renderSpeakingOrderBoxes();
 
   roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
   playerRoleEl.textContent = '';
   nextPlayerBtn.disabled = false;
   showRoleBtn.style.display = 'none';
-  discussionSection.classList.add('d-none');
+  discussionSection.classList.remove('d-none'); // กลับไป discussion ใหม่
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
   nextRoundBtn.style.display = 'none';
@@ -423,3 +437,4 @@ function resetGame() {
 }
 
 loadCategories();
+
