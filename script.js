@@ -146,27 +146,22 @@ function assignRoles() {
 
   categoryInfoEl.textContent = `หมวดคำ: ${catInfo.category}`;
 
-  const usedPairsSet = new Set();
+  // **เลือกคู่คำเดียวกัน 1 คู่ เพื่อแจกทุกคน**
+  const chosenPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
 
+  // แจกคำตามบทบาท
   for (let r of roles) {
-    let pair, attempts = 0;
-    do {
-      pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
-      attempts++;
-      if (attempts > 1000) break;
-    } while (usedPairsSet.has(pair.join('|')));
-    usedPairsSet.add(pair.join('|'));
-
     if (r === 'มิสเตอร์ไวท์') {
       playerWords.push('??? ไม่มีคำ');
     } else if (r === 'สายลับ') {
-      playerWords.push(pair[1]);
+      playerWords.push(chosenPair[1]);
     } else {
-      playerWords.push(pair[0]);
+      playerWords.push(chosenPair[0]);
     }
   }
   return true;
 }
+
 
 function renderSpeakingOrderBoxes() {
   speakingOrderBoxes.innerHTML = '';
@@ -335,3 +330,4 @@ function startGame() {
 }
 
 loadCategories();
+
