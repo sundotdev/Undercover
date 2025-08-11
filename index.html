@@ -1,75 +1,546 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Undercover Game</title>
-
-<!-- Bootstrap 5 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-<!-- FontAwesome 6 -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Undercover Game - Mr.White</title>
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 1rem;
+      background: #f4f4f4;
+    }
+    #setup, #game {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 1rem 1.5rem;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
+    }
+    ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .list-group-item {
+      background: #eee;
+      margin: 0.2rem 0;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      cursor: pointer;
+    }
+    .btn-danger {
+      background: #dc3545;
+      border: none;
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    .btn {
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      border: 1px solid #007bff;
+      background: #007bff;
+      color: white;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    .btn:disabled {
+      background: #cccccc;
+      border-color: #cccccc;
+      cursor: default;
+    }
+    .btn:hover:not(:disabled) {
+      background: #0056b3;
+    }
+    .speaker-box {
+      border: 1px solid #888;
+      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      margin: 0.3rem 0;
+      background: #fff;
+    }
+    .speaker-box.start {
+      background: #c8e6c9;
+      font-weight: bold;
+      border-color: #2e7d32;
+    }
+    .voted {
+      background-color: #ffcccb !important;
+    }
+    .d-none {
+      display: none !important;
+    }
+    #loadingMsg {
+      text-align: center;
+      margin: 1rem 0;
+      font-weight: 600;
+      color: #444;
+    }
+  </style>
 </head>
 <body>
 
-<div class="container py-3" style="max-width:480px;">
-  <h1 class="text-center mb-4 text-warning"><i class="fa-solid fa-mask"></i> Undercover</h1>
+  <h1 style="text-align:center">เกม Undercover (Mr.White)</h1>
 
-  <div id="setup" class="mb-4">
-    <div class="input-group mb-2">
-      <input id="playerNameInput" type="text" class="form-control" placeholder="ใส่ชื่อลงทะเบียนผู้เล่น" autocomplete="off" />
-      <button class="btn btn-warning" onclick="addPlayer()"><i class="fa-solid fa-plus"></i> เพิ่มผู้เล่น</button>
+  <div id="loadingMsg"></div>
+
+  <!-- Setup Section -->
+  <div id="setup">
+    <h3>ตั้งค่าผู้เล่นและบทบาท</h3>
+
+    <input
+      type="text"
+      id="playerNameInput"
+      placeholder="ใส่ชื่อผู้เล่น แล้วกดเพิ่ม"
+      autofocus
+      style="width: 70%; padding: 0.5rem"
+    />
+    <button id="addPlayerBtn" class="btn">เพิ่มผู้เล่น</button>
+
+    <h4>รายชื่อผู้เล่น</h4>
+    <ul id="playerList"></ul>
+
+    <div style="margin: 1rem 0;">
+      <label>จำนวนมิสเตอร์ไวท์ (Mr.White): </label>
+      <input
+        type="number"
+        id="mrWhiteCount"
+        min="1"
+        max="5"
+        value="1"
+        style="width: 4rem;"
+      />
+    </div>
+    <div style="margin: 1rem 0;">
+      <label>จำนวนสายลับ (Undercover): </label>
+      <input
+        type="number"
+        id="undercoverCount"
+        min="1"
+        max="5"
+        value="1"
+        style="width: 4rem;"
+      />
     </div>
 
-    <ul id="playerList" class="list-group mb-3"></ul>
-
-    <div class="mb-3">
-      <label for="mrWhiteCount" class="form-label">จำนวน ไอขาว (Mr.White)</label>
-      <input type="number" id="mrWhiteCount" class="form-control" min="1" max="3" value="1" />
-    </div>
-    <div class="mb-3">
-      <label for="undercoverCount" class="form-label">จำนวน สายลับ (Undercover)</label>
-      <input type="number" id="undercoverCount" class="form-control" min="1" max="3" value="1" />
-    </div>
-
-    <button onclick="startGame()" id="startBtn" class="btn btn-warning btn-wide" disabled><i class="fa-solid fa-play"></i> เริ่มเกม</button>
-    <div id="loadingMsg" class="text-center mt-2 text-danger"></div>
-    <div id="categoryInfo" class="text-center mt-2 text-info"></div>
+    <button id="startBtn" class="btn" disabled>เริ่มเกม</button>
   </div>
 
+  <!-- Game Section -->
   <div id="game" class="d-none">
-    <div id="roundInfo" class="text-center mb-2 text-white"></div>
+    <h3>หมวดคำ: <span id="categoryInfo"></span></h3>
+    <div id="roundInfo" style="margin-bottom:1rem; font-weight:600;"></div>
 
-    <div id="speakingOrderBoxes" class="mb-3"></div>
+    <div id="speakingOrderBoxes"></div>
 
-    <div id="playerRole" class="role-text"></div>
+    <hr />
 
-    <div class="d-flex gap-2 justify-content-center mb-3 flex-wrap">
-      <button id="nextPlayerBtn" class="btn btn-warning flex-grow-1" onclick="showNextPlayerName()"><i class="fa-solid fa-user"></i> คนถัดไป</button>
-      <button id="showRoleBtn" class="btn btn-warning flex-grow-1 d-none" onclick="showRole()"><i class="fa-solid fa-eye"></i> ดูบทบาท</button>
-    </div>
+    <div id="playerRole" style="min-height:80px; font-size:1.2rem; margin-bottom: 1rem; background:#eef; padding:1rem; border-radius:4px;"></div>
 
-    <div id="discussionSection" class="d-none text-center mb-3">
-      <button class="btn btn-success btn-wide mt-2" onclick="startVote()"><i class="fa-solid fa-comments"></i> เริ่มโหวตเลือกผู้ต้องสงสัย</button>
-    </div>
+    <button id="showRoleBtn" class="btn">ดูบทบาท</button>
+    <button id="nextPlayerBtn" class="btn" disabled>ถัดไป</button>
 
-    <div id="votingSection" class="d-none">
-      <h5 class="text-white"><i class="fa-solid fa-vote-yea"></i> โหวตเลือกคนที่คิดว่าน่าสงสัย</h5>
-      <ul id="voteList" class="list-group mb-3"></ul>
-      <button class="btn btn-danger btn-wide" onclick="confirmVote()"><i class="fa-solid fa-check"></i> ยืนยันโหวต</button>
-    </div>
+    <section id="discussionSection" class="d-none" style="margin-top:1.5rem;">
+      <h4>อภิปราย / พูดคุย</h4>
+      <button id="startVoteBtn" class="btn">เริ่มโหวต</button>
+    </section>
 
-    <div id="resultSection" class="d-none text-center">
-      <h4 class="text-warning"><i class="fa-solid fa-trophy"></i> ผลโหวต</h4>
-      <div id="voteResult" class="text-white"></div>
-      <button class="btn btn-primary btn-wide mt-3" onclick="nextRound()"><i class="fa-solid fa-arrow-right"></i> เริ่มรอบใหม่</button>
-      <button class="btn btn-danger btn-wide mt-2" onclick="resetGame()"><i class="fa-solid fa-rotate"></i> เริ่มเกมใหม่</button>
-    </div>
+    <section id="votingSection" class="d-none" style="margin-top:1.5rem;">
+      <h4>เลือกผู้เล่นที่ต้องการโหวต (คลิกเลือก/ยกเลิก)</h4>
+      <ul id="voteList" style="max-height: 200px; overflow-y: auto;"></ul>
+      <button id="confirmVoteBtn" class="btn" style="margin-top: 0.5rem;">ยืนยันโหวต</button>
+    </section>
+
+    <section id="resultSection" class="d-none" style="margin-top:1.5rem;">
+      <h4>ผลการโหวต</h4>
+      <div id="voteResult"></div>
+      <button id="nextRoundBtn" class="btn" style="margin-top: 0.5rem;">เริ่มรอบใหม่</button>
+      <button id="resetGameBtn" class="btn" style="margin-top: 0.5rem; background:#dc3545;">รีเซ็ตเกม</button>
+    </section>
   </div>
-</div>
 
-<script src="script.js"></script>
+  <script>
+    let players = [];
+    let roles = [];
+    let playerWords = [];
+    let currentPlayerIndex = 0;
+    let roundNumber = 1;
+    let categoriesData = null;
+
+    const playerListEl = document.getElementById('playerList');
+    const startBtn = document.getElementById('startBtn');
+    const setupDiv = document.getElementById('setup');
+    const gameDiv = document.getElementById('game');
+    const playerRoleEl = document.getElementById('playerRole');
+    const roundInfoEl = document.getElementById('roundInfo');
+    const nextPlayerBtn = document.getElementById('nextPlayerBtn');
+    const showRoleBtn = document.getElementById('showRoleBtn');
+    const discussionSection = document.getElementById('discussionSection');
+    const speakingOrderBoxes = document.getElementById('speakingOrderBoxes');
+    const votingSection = document.getElementById('votingSection');
+    const voteListEl = document.getElementById('voteList');
+    const resultSection = document.getElementById('resultSection');
+    const voteResultEl = document.getElementById('voteResult');
+    const loadingMsg = document.getElementById('loadingMsg');
+    const categoryInfoEl = document.getElementById('categoryInfo');
+    const addPlayerBtn = document.getElementById('addPlayerBtn');
+    const mrWhiteCountInput = document.getElementById('mrWhiteCount');
+    const undercoverCountInput = document.getElementById('undercoverCount');
+    const startVoteBtn = document.getElementById('startVoteBtn');
+    const confirmVoteBtn = document.getElementById('confirmVoteBtn');
+    const nextRoundBtn = document.getElementById('nextRoundBtn');
+    const resetGameBtn = document.getElementById('resetGameBtn');
+
+    // โหลดหมวดหมู่คำจากไฟล์ data.json
+    async function loadCategories() {
+      loadingMsg.textContent = 'กำลังโหลดข้อมูลหมวดหมู่คำ...';
+      try {
+        const res = await fetch('data.json');
+        if (!res.ok) throw new Error('โหลดไฟล์ data.json ไม่สำเร็จ');
+        const json = await res.json();
+        categoriesData = json.categories;
+        loadingMsg.textContent = '';
+        checkStartButton();
+      } catch (e) {
+        loadingMsg.textContent = 'โหลดข้อมูลหมวดหมู่คำล้มเหลว';
+        console.error(e);
+      }
+    }
+
+    // เพิ่มผู้เล่นใหม่
+    function addPlayer() {
+      const input = document.getElementById('playerNameInput');
+      const name = input.value.trim();
+      if (name === '') return alert('กรุณาใส่ชื่อผู้เล่น');
+      if (players.includes(name)) return alert('ชื่อซ้ำ กรุณาเปลี่ยนชื่อ');
+      players.push(name);
+      input.value = '';
+      renderPlayerList();
+      checkStartButton();
+    }
+
+    // แสดงรายชื่อผู้เล่น
+    function renderPlayerList() {
+      playerListEl.innerHTML = '';
+      players.forEach((p, i) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+        const span = document.createElement('span');
+        span.textContent = p;
+
+        const btnDel = document.createElement('button');
+        btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        btnDel.className = 'btn btn-danger';
+        btnDel.title = 'ลบผู้เล่น';
+        btnDel.onclick = () => {
+          players.splice(i, 1);
+          renderPlayerList();
+          checkStartButton();
+        };
+
+        li.appendChild(span);
+        li.appendChild(btnDel);
+        playerListEl.appendChild(li);
+      });
+    }
+
+    // ตรวจสอบและเปิดปุ่มเริ่มเกม
+    function checkStartButton() {
+      const mrWhiteCount = parseInt(mrWhiteCountInput.value) || 0;
+      const undercoverCount = parseInt(undercoverCountInput.value) || 0;
+      const totalNeeded = mrWhiteCount + undercoverCount;
+      if (players.length >= totalNeeded + 1 && mrWhiteCount >= 1 && undercoverCount >= 1 && categoriesData !== null) {
+        startBtn.disabled = false;
+      } else {
+        startBtn.disabled = true;
+      }
+    }
+
+    // สุ่ม array
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // แปลงชื่อบทบาทให้สั้นและเข้าใจง่าย
+    function roleName(role) {
+      switch (role) {
+        case 'มิสเตอร์ไวท์': return 'ไอขาว';
+        case 'สายลับ': return 'สายลับ';
+        case 'พลเมือง': return 'คนแสนดี';
+        default: return role;
+      }
+    }
+
+    // เลือกหมวดคำแบบสุ่ม
+    function getRandomCategory() {
+      const keys = Object.keys(categoriesData);
+      const cat = keys[Math.floor(Math.random() * keys.length)];
+      const wordPairs = categoriesData[cat];
+      return { category: cat, wordPairs: wordPairs };
+    }
+
+    // แจกบทบาทและคำให้ผู้เล่น
+    function assignRoles() {
+      roles = [];
+      playerWords = [];
+      const totalPlayers = players.length;
+      const mrWhiteCount = parseInt(mrWhiteCountInput.value);
+      const undercoverCount = parseInt(undercoverCountInput.value);
+      const citizenCount = totalPlayers - mrWhiteCount - undercoverCount;
+      if (citizenCount < 0) {
+        alert('จำนวนบทบาทเกินจำนวนผู้เล่น');
+        return false;
+      }
+      for (let i = 0; i < mrWhiteCount; i++) roles.push('มิสเตอร์ไวท์');
+      for (let i = 0; i < undercoverCount; i++) roles.push('สายลับ');
+      for (let i = 0; i < citizenCount; i++) roles.push('พลเมือง');
+      roles = shuffleArray(roles);
+
+      // คนเริ่มพูดไม่ใช่ Mr.White
+      let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+      if (startIndex === -1) startIndex = 0;
+      while (roles[0] === 'มิสเตอร์ไวท์') {
+        roles = shuffleArray(roles);
+      }
+
+      const catInfo = getRandomCategory();
+      if (!catInfo) {
+        alert('ไม่พบข้อมูลหมวดหมู่คำ');
+        return false;
+      }
+      const wordPairs = catInfo.wordPairs;
+      if (!wordPairs || wordPairs.length === 0) {
+        alert('หมวดคำนี้ไม่มีคำให้เล่น');
+        return false;
+      }
+
+      categoryInfoEl.textContent = `หมวดคำ: ${catInfo.category}`;
+
+      // เลือกคู่คำเดียวกัน 1 คู่ เพื่อแจกทุกคน
+      const chosenPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
+
+      // แจกคำตามบทบาท
+      for (let r of roles) {
+        if (r === 'มิสเตอร์ไวท์') {
+          playerWords.push('??? ไม่มีคำ');
+        } else if (r === 'สายลับ') {
+          playerWords.push(chosenPair[1]);
+        } else {
+          playerWords.push(chosenPair[0]);
+        }
+      }
+      return true;
+    }
+
+    // แสดงลำดับผู้พูด
+    function renderSpeakingOrderBoxes() {
+      speakingOrderBoxes.innerHTML = '';
+      let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+      if (startIndex === -1) startIndex = 0;
+      for (let i = 0; i < players.length; i++) {
+        const idx = (startIndex + i) % players.length;
+        const box = document.createElement('div');
+        box.className = 'speaker-box';
+        if (i === 0) box.classList.add('start');
+        box.textContent = `${i + 1}. ${players[idx]}`;
+        speakingOrderBoxes.appendChild(box);
+      }
+    }
+
+    let showingRole = false;
+
+    // แสดงชื่อผู้เล่นถัดไปที่จะดูบทบาท
+    function showNextPlayerName() {
+      if (currentPlayerIndex >= players.length) {
+        alert('ดูบทบาทครบทุกคนแล้ว');
+        nextPlayerBtn.disabled = true;
+        discussionSection.classList.remove('d-none');
+        showRoleBtn.classList.add('d-none');
+        playerRoleEl.textContent = '';
+        return;
+      }
+      let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+      if (startIndex === -1) startIndex = 0;
+      const playerPos = (startIndex + currentPlayerIndex) % players.length;
+      const player = players[playerPos];
+      playerRoleEl.innerHTML = `<div>คนถัดไปคือ: <b>${player}</b></div><div>กดปุ่ม "ดูบทบาท" เพื่อดูบทบาทของคุณ</div>`;
+      nextPlayerBtn.disabled = true;
+      showRoleBtn.classList.remove('d-none');
+      showingRole = false;
+    }
+
+    // แสดงบทบาทและคำของผู้เล่น
+    function showRole() {
+      if (showingRole) return;
+      let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+      if (startIndex === -1) startIndex = 0;
+      const playerPos = (startIndex + currentPlayerIndex) % players.length;
+      const role = roles[playerPos];
+      const word = playerWords[playerPos] || '???';
+
+      playerRoleEl.innerHTML = `<div>บทบาทของคุณคือ: <b>${roleName(role)}</b></div><div>คำที่ได้: <b>${word}</b></div>`;
+
+      showingRole = true;
+      currentPlayerIndex++;
+      nextPlayerBtn.disabled = false;
+      showRoleBtn.classList.add('d-none');
+    }
+
+    let voteSelections = new Set();
+
+    // เริ่มโหวต
+    function startVote() {
+      discussionSection.classList.add('d-none');
+      votingSection.classList.remove('d-none');
+      voteSelections.clear();
+      voteListEl.innerHTML = '';
+      players.forEach((p, i) => {
+        const li = document.createElement('li');
+        li.textContent = p;
+        li.className = 'list-group-item';
+        li.style.cursor = 'pointer';
+        li.onclick = () => {
+          if (voteSelections.has(i)) {
+            voteSelections.delete(i);
+            li.classList.remove('voted');
+          } else {
+            voteSelections.add(i);
+            li.classList.add('voted');
+          }
+        };
+        voteListEl.appendChild(li);
+      });
+    }
+
+    // ยืนยันโหวต
+    function confirmVote() {
+      if (voteSelections.size === 0) {
+        alert('กรุณาเลือกผู้เล่นที่ต้องการโหวต');
+        return;
+      }
+      votingSection.classList.add('d-none');
+      resultSection.classList.remove('d-none');
+
+      let found = false;
+      let wrongVotes = [];
+
+      voteSelections.forEach(i => {
+        if (roles[i] === 'มิสเตอร์ไวท์' || roles[i] === 'สายลับ') {
+          found = true;
+        } else {
+          wrongVotes.push(players[i]);
+        }
+      });
+
+      let voteText = '';
+      if (found) {
+        voteText += `<p><b>ผลโหวตเจอ ไอขาว หรือ สายลับ! เกมจบ</b></p>`;
+      } else {
+        voteText += `<p><b>โหวตผิด! คนที่โหวตผิดต้องดื่ม 1 ดริ้ง</b></p>`;
+        voteText += `<p>ผู้เล่นที่โหวตผิด: ${wrongVotes.join(', ')}</p>`;
+      }
+
+      voteText += `<h5>บทบาทของผู้เล่น:</h5><ul>`;
+      players.forEach((p, i) => {
+        voteText += `<li>${p} = ${roleName(roles[i])}</li>`;
+      });
+      voteText += `</ul>`;
+
+      voteResultEl.innerHTML = voteText;
+    }
+
+    // เริ่มรอบใหม่
+    function nextRound() {
+      roundNumber++;
+      currentPlayerIndex = 0;
+      if (!assignRoles()) {
+        alert('ไม่สามารถเริ่มรอบใหม่ได้');
+        resetGame();
+        return;
+      }
+      renderSpeakingOrderBoxes();
+      roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
+      playerRoleEl.textContent = '';
+      nextPlayerBtn.disabled = false;
+      showRoleBtn.classList.add('d-none');
+      discussionSection.classList.add('d-none');
+      votingSection.classList.add('d-none');
+      resultSection.classList.add('d-none');
+      showNextPlayerName();
+    }
+
+    // รีเซ็ตเกมทั้งหมด
+    function resetGame() {
+      players = [];
+      roles = [];
+      playerWords = [];
+      currentPlayerIndex = 0;
+      roundNumber = 1;
+      setupDiv.classList.remove('d-none');
+      gameDiv.classList.add('d-none');
+      playerListEl.innerHTML = '';
+      categoryInfoEl.textContent = '';
+      playerRoleEl.textContent = '';
+      nextPlayerBtn.disabled = false;
+      showRoleBtn.classList.add('d-none');
+      discussionSection.classList.add('d-none');
+      votingSection.classList.add('d-none');
+      resultSection.classList.add('d-none');
+      startBtn.disabled = true;
+    }
+
+    // เริ่มเกม
+    function startGame() {
+      if (players.length < 3) {
+        alert('ผู้เล่นต้องมากกว่า 2 คนขึ้นไป');
+        return;
+      }
+      if (!assignRoles()) return;
+      setupDiv.classList.add('d-none');
+      gameDiv.classList.remove('d-none');
+      renderSpeakingOrderBoxes();
+      roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
+      playerRoleEl.textContent = '';
+      currentPlayerIndex = 0;
+      nextPlayerBtn.disabled = false;
+      showRoleBtn.classList.add('d-none');
+      discussionSection.classList.add('d-none');
+      votingSection.classList.add('d-none');
+      resultSection.classList.add('d-none');
+      showNextPlayerName();
+    }
+
+    // ผูก event listener ปุ่มต่างๆ
+    document.addEventListener('DOMContentLoaded', () => {
+      loadCategories();
+
+      addPlayerBtn.addEventListener('click', addPlayer);
+      mrWhiteCountInput.addEventListener('change', checkStartButton);
+      undercoverCountInput.addEventListener('change', checkStartButton);
+      startBtn.addEventListener('click', startGame);
+      nextPlayerBtn.addEventListener('click', showNextPlayerName);
+      showRoleBtn.addEventListener('click', showRole);
+      startVoteBtn.addEventListener('click', startVote);
+      confirmVoteBtn.addEventListener('click', confirmVote);
+      nextRoundBtn.addEventListener('click', nextRound);
+      resetGameBtn.addEventListener('click', resetGame);
+    });
+  </script>
+
 </body>
 </html>
