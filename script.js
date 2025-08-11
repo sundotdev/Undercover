@@ -24,7 +24,6 @@ const categoryInfoEl = document.getElementById('categoryInfo');
 const discussionTimer = document.getElementById('discussionTimer');
 const nextRoundBtn = document.getElementById('nextRoundBtn');
 
-let voteSelections = new Set();
 let discussionCountdown = null;
 
 async function loadCategories() {
@@ -114,7 +113,6 @@ function roleClass(role) {
   }
 }
 
-// Random category & words
 function getRandomCategory() {
   const keys = Object.keys(categoriesData);
   const cat = keys[Math.floor(Math.random() * keys.length)];
@@ -156,7 +154,6 @@ function assignRoles() {
 
   categoryInfoEl.textContent = `Category: ${catInfo.category}`;
 
-  // choose one pair for all
   const chosenPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
 
   for (let r of roles) {
@@ -250,54 +247,74 @@ function startVote() {
   }
   discussionSection.classList.add('d-none');
   votingSection.classList.remove('d-none');
-  voteSelections.clear();
   voteListEl.innerHTML = '';
+
   players.forEach((p, i) => {
     const li = document.createElement('li');
-    li.textContent = p;
-    li.className = 'list-group-item';
-    li.onclick = () => {
-      if (voteSelections.has(i)) {
-        voteSelections.delete(i);
-        li.classList.remove('voted');
-      } else {
-        voteSelections.add(i);
-        li.classList.add('voted');
-      }
-    };
+    li.className = 'list-group-item d-flex align-items-center';
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'votePlayer';
+    radio.value = i;
+    radio.id = 'votePlayer' + i;
+    radio.className = 'form-check-input me-2';
+
+    const label = document.createElement('label');
+    label.htmlFor = radio.id;
+    label.textContent = p;
+    label.style.userSelect = 'none';
+    label.className = 'mb-0';
+
+    li.appendChild(radio);
+    li.appendChild(label);
     voteListEl.appendChild(li);
   });
 }
 
 function confirmVote() {
-  if (voteSelections.size === 0) {
-    alert('Please select player(s) to vote');
+  const selectedRadio = document.querySelector('input[name="votePlayer"]:checked');
+  if (!selectedRadio) {
+    alert('Please select one player to vote');
     return;
   }
 
-  const voteTarget = document.querySelector('input[name="voteTarget"]:checked').value;
+  const voteIndex = parseInt(selectedRadio.value);
+  const voteTargetInput = document.querySelector('input[name="voteTarget"]:checked');
+  if (!voteTargetInput) {
+    alert('Please select a role to vote for (MR.WHITE or UNDERCOVER)');
+    return;
+  }
+  const voteTarget = voteTargetInput.value.toUpperCase();
 
   votingSection.classList.add('d-none');
   resultSection.classList.remove('d-none');
 
-  let found = false;
-  let wrongVotes = [];
-
-  voteSelections.forEach(i => {
-    if (roles[i] === voteTarget) {
-      found = true;
-    } else {
-      wrongVotes.push(players[i]);
-    }
-  });
-
+  const votedPlayerRole = roles[voteIndex];
+  const votedPlayerName = players[voteIndex];
   let voteText = '';
-  if (found) {
-    voteText += `<p><b>Success! You found <span class="${roleClass(voteTarget)}">${voteTarget}</span>. The game ends.</b></p>`;
-    nextRoundBtn.style.display = 'none';
+
+  if (votedPlayerRole === voteTarget) {
+    voteText += `<p><b>Success! You found <span class="${roleClass(voteTarget)}">${voteTarget}</span> - <span class="fw-bold">${votedPlayerName}</span>.</b></p>`;
+    players.splice(voteIndex, 1);
+    roles.splice(voteIndex, 1);
+    playerWords.splice(voteIndex, 1);
+    voteText += `<p><i>Player <b>${votedPlayerName}</b> has been removed from the game.</i></p>`;
+
+    const hasMrWhite = roles.includes('MR.WHITE');
+    const hasUndercover = roles.includes('UNDERCOVER');
+
+    if (!hasMrWhite && !hasUndercover) {
+      voteText += `<p class="text-success fw-bold">Game Over! All MR.WHITE and UNDERCOVER are found.</p>`;
+      nextRoundBtn.style.display = 'none';
+    } else {
+      voteText += `<p>Game continues. Find remaining special roles.</p>`;
+      nextRoundBtn.style.display = 'inline-block';
+    }
   } else {
     voteText += `<p><b>Wrong vote! Those who voted wrong must drink 1 shot.</b></p>`;
-    voteText += `<p>Players voted wrong: ${wrongVotes.join(', ')}</p>`;
+    voteText += `<p>Player voted: <b>${votedPlayerName}</b> is <span class="${roleClass(votedPlayerRole)}">${roleName(votedPlayerRole)}</span>.</p>`;
+    voteText += `<p>Game continues.</p>`;
     nextRoundBtn.style.display = 'inline-block';
   }
 
@@ -348,7 +365,6 @@ function resetGame() {
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
   startBtn.disabled = true;
-  voteSelections.clear();
   discussionTimer.textContent = '';
   nextRoundBtn.style.display = 'none';
 }
