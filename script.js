@@ -1,9 +1,9 @@
 let players = [];
 let roles = [];
-let playerWords = []; 
+let playerWords = [];
 let currentPlayerIndex = 0;
 let roundNumber = 1;
-let categoriesData = null; 
+let categoriesData = null;
 
 const playerListEl = document.getElementById('playerList');
 const startBtn = document.getElementById('startBtn');
@@ -26,12 +26,12 @@ async function loadCategories() {
   loadingMsg.textContent = 'กำลังโหลดข้อมูลหมวดหมู่คำ...';
   try {
     const res = await fetch('data.json');
-    if(!res.ok) throw new Error('โหลดไฟล์ data.json ไม่สำเร็จ');
+    if (!res.ok) throw new Error('โหลดไฟล์ data.json ไม่สำเร็จ');
     const json = await res.json();
     categoriesData = json.categories;
     loadingMsg.textContent = '';
     checkStartButton();
-  } catch(e) {
+  } catch (e) {
     loadingMsg.textContent = 'โหลดข้อมูลหมวดหมู่คำล้มเหลว';
     console.error(e);
   }
@@ -40,8 +40,8 @@ async function loadCategories() {
 function addPlayer() {
   const input = document.getElementById('playerNameInput');
   const name = input.value.trim();
-  if(name === '') return alert('กรุณาใส่ชื่อผู้เล่น');
-  if(players.includes(name)) return alert('ชื่อซ้ำ กรุณาเปลี่ยนชื่อ');
+  if (name === '') return alert('กรุณาใส่ชื่อผู้เล่น');
+  if (players.includes(name)) return alert('ชื่อซ้ำ กรุณาเปลี่ยนชื่อ');
   players.push(name);
   input.value = '';
   renderPlayerList();
@@ -50,7 +50,7 @@ function addPlayer() {
 
 function renderPlayerList() {
   playerListEl.innerHTML = '';
-  players.forEach((p,i) => {
+  players.forEach((p, i) => {
     const li = document.createElement('li');
     li.className = 'list-group-item d-flex justify-content-between align-items-center';
 
@@ -62,7 +62,7 @@ function renderPlayerList() {
     btnDel.className = 'btn btn-sm btn-outline-danger';
     btnDel.title = 'ลบผู้เล่น';
     btnDel.onclick = () => {
-      players.splice(i,1);
+      players.splice(i, 1);
       renderPlayerList();
       checkStartButton();
     };
@@ -77,7 +77,7 @@ function checkStartButton() {
   const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
   const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
   const totalNeeded = mrWhiteCount + undercoverCount;
-  if(players.length >= totalNeeded + 1 && mrWhiteCount >=1 && undercoverCount >=1 && categoriesData !== null) {
+  if (players.length >= totalNeeded + 1 && mrWhiteCount >= 1 && undercoverCount >= 1 && categoriesData !== null) {
     startBtn.disabled = false;
   } else {
     startBtn.disabled = true;
@@ -88,15 +88,15 @@ document.getElementById('mrWhiteCount').addEventListener('change', checkStartBut
 document.getElementById('undercoverCount').addEventListener('change', checkStartButton);
 
 function shuffleArray(arr) {
-  for(let i=arr.length-1; i>0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
 }
 
 function roleName(role) {
-  switch(role) {
+  switch (role) {
     case 'มิสเตอร์ไวท์': return 'ไอขาว';
     case 'สายลับ': return 'สายลับ';
     case 'พลเมือง': return 'คนแสนดี';
@@ -104,22 +104,13 @@ function roleName(role) {
   }
 }
 
-function getRandomCategoryAndSub() {
-  const categoryKeys = Object.keys(categoriesData);
-  const randomCategory = categoryKeys[Math.floor(Math.random() * categoryKeys.length)];
-
-  const catData = categoriesData[randomCategory];
-  if (typeof catData === 'object' && !Array.isArray(catData)) {
-    const subKeys = Object.keys(catData);
-    const randomSub = subKeys[Math.floor(Math.random() * subKeys.length)];
-    return { category: randomCategory, subCategory: randomSub, wordPairs: catData[randomSub] };
-  } else if (Array.isArray(catData)) {
-    return { category: randomCategory, subCategory: null, wordPairs: catData };
-  }
-  return null;
+// เลือกหมวดคำแบบสุ่ม (key ปกติ)
+function getRandomCategory() {
+  const keys = Object.keys(categoriesData);
+  const cat = keys[Math.floor(Math.random() * keys.length)];
+  const wordPairs = categoriesData[cat];
+  return { category: cat, wordPairs: wordPairs };
 }
-
-const whiteWords = ['???', 'ไม่รู้', 'คำลับ', '???', '???']; // คำสำหรับ ไอขาว
 
 function assignRoles() {
   roles = [];
@@ -137,24 +128,23 @@ function assignRoles() {
   for (let i = 0; i < citizenCount; i++) roles.push('พลเมือง');
   roles = shuffleArray(roles);
 
+  // คนเริ่มพูดไม่ใช่ Mr.White
   while (roles[0] === 'มิสเตอร์ไวท์') {
     roles = shuffleArray(roles);
   }
 
-  // เลือกหมวดหมู่คำ
-  const catInfo = getRandomCategoryAndSub();
+  const catInfo = getRandomCategory();
   if (!catInfo) {
     alert('ไม่พบข้อมูลหมวดหมู่คำ');
     return false;
   }
-
   const wordPairs = catInfo.wordPairs;
   if (!wordPairs || wordPairs.length === 0) {
     alert('หมวดคำนี้ไม่มีคำให้เล่น');
     return false;
   }
 
-  categoryInfoEl.textContent = `หมวดคำ: ${catInfo.category}${catInfo.subCategory ? ' > ' + catInfo.subCategory : ''}`;
+  categoryInfoEl.textContent = `หมวดคำ: ${catInfo.category}`;
 
   const usedPairsSet = new Set();
 
@@ -168,27 +158,25 @@ function assignRoles() {
     usedPairsSet.add(pair.join('|'));
 
     if (r === 'มิสเตอร์ไวท์') {
-      // ไอขาว ไม่ได้คำจริง
       playerWords.push('??? ไม่มีคำ');
     } else if (r === 'สายลับ') {
-      playerWords.push(pair[1]); // คำสายลับ (Undercover)
+      playerWords.push(pair[1]);
     } else {
-      playerWords.push(pair[0]); // คำพลเมือง (Ordinary person)
+      playerWords.push(pair[0]);
     }
   }
   return true;
 }
 
-
 function renderSpeakingOrderBoxes() {
   speakingOrderBoxes.innerHTML = '';
   let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
-  for(let i=0; i<players.length; i++) {
+  for (let i = 0; i < players.length; i++) {
     const idx = (startIndex + i) % players.length;
     const box = document.createElement('div');
     box.className = 'speaker-box';
-    if(i === 0) box.classList.add('start');
-    box.textContent = `${i+1}. ${players[idx]}`;
+    if (i === 0) box.classList.add('start');
+    box.textContent = `${i + 1}. ${players[idx]}`;
     speakingOrderBoxes.appendChild(box);
   }
 }
@@ -196,7 +184,7 @@ function renderSpeakingOrderBoxes() {
 let showingRole = false;
 
 function showNextPlayerName() {
-  if(currentPlayerIndex >= players.length) {
+  if (currentPlayerIndex >= players.length) {
     alert('ดูบทบาทครบทุกคนแล้ว');
     nextPlayerBtn.disabled = true;
     discussionSection.classList.remove('d-none');
@@ -214,7 +202,7 @@ function showNextPlayerName() {
 }
 
 function showRole() {
-  if(showingRole) return;
+  if (showingRole) return;
   let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
   const playerPos = (startIndex + currentPlayerIndex) % players.length;
   const role = roles[playerPos];
@@ -240,7 +228,7 @@ function startVote() {
     li.textContent = p;
     li.className = 'list-group-item';
     li.onclick = () => {
-      if(voteSelections.has(i)) {
+      if (voteSelections.has(i)) {
         voteSelections.delete(i);
         li.classList.remove('voted');
       } else {
@@ -253,7 +241,7 @@ function startVote() {
 }
 
 function confirmVote() {
-  if(voteSelections.size === 0) {
+  if (voteSelections.size === 0) {
     alert('กรุณาเลือกผู้เล่นที่ต้องการโหวต');
     return;
   }
@@ -264,7 +252,7 @@ function confirmVote() {
   let wrongVotes = [];
 
   voteSelections.forEach(i => {
-    if(roles[i] === 'มิสเตอร์ไวท์' || roles[i] === 'สายลับ') {
+    if (roles[i] === 'มิสเตอร์ไวท์' || roles[i] === 'สายลับ') {
       found = true;
     } else {
       wrongVotes.push(players[i]);
@@ -272,7 +260,7 @@ function confirmVote() {
   });
 
   let voteText = '';
-  if(found) {
+  if (found) {
     voteText += `<p><b>ผลโหวตเจอ ไอขาว หรือ สายลับ! เกมจบ</b></p>`;
   } else {
     voteText += `<p><b>โหวตผิด! คนที่โหวตผิดต้องดื่ม 1 ดริ้ง</b></p>`;
@@ -280,7 +268,7 @@ function confirmVote() {
   }
 
   voteText += `<h5>บทบาทของผู้เล่น:</h5><ul>`;
-  players.forEach((p,i) => {
+  players.forEach((p, i) => {
     voteText += `<li>${p} = ${roleName(roles[i])}</li>`;
   });
   voteText += `</ul>`;
@@ -291,7 +279,7 @@ function confirmVote() {
 function nextRound() {
   roundNumber++;
   currentPlayerIndex = 0;
-  if(!assignRoles()) {
+  if (!assignRoles()) {
     alert('ไม่สามารถเริ่มรอบใหม่ได้');
     resetGame();
     return;
@@ -304,6 +292,7 @@ function nextRound() {
   discussionSection.classList.add('d-none');
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
+  showNextPlayerName();
 }
 
 function resetGame() {
@@ -326,11 +315,11 @@ function resetGame() {
 }
 
 function startGame() {
-  if(players.length < 3) {
+  if (players.length < 3) {
     alert('ผู้เล่นต้องมากกว่า 2 คนขึ้นไป');
     return;
   }
-  if(!assignRoles()) return;
+  if (!assignRoles()) return;
   setupDiv.classList.add('d-none');
   gameDiv.classList.remove('d-none');
   renderSpeakingOrderBoxes();
@@ -346,4 +335,3 @@ function startGame() {
 }
 
 loadCategories();
-
