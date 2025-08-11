@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>เกม Undercover</title>
+<title>เกม Undercover ภาษาไทย (เวอร์ชันวงกลม + ลำดับพูด)</title>
 
 <!-- Bootstrap 5 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -33,11 +33,32 @@
   .btn-wide {
     width: 100%;
   }
+  #speakingOrderBoxes {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+  .speaker-box {
+    background-color: #f39c12;
+    color: black;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    user-select: none;
+    min-width: 60px;
+    text-align: center;
+  }
+  .speaker-box.start {
+    background-color: #27ae60;
+    color: white;
+  }
 </style>
 </head>
 <body>
 
-<h1>เกม Undercover ภาษาไทย (วงกลม)</h1>
+<h1>เกม Undercover ภาษาไทย (วงกลม + ลำดับพูด)</h1>
 
 <div id="setup" class="mb-4">
   <div class="input-group mb-2">
@@ -62,6 +83,9 @@
 <div id="game" class="d-none">
   <div id="roundInfo" class="text-center mb-2"></div>
 
+  <!-- ลำดับการพูดเป็นกล่องๆ -->
+  <div id="speakingOrderBoxes"></div>
+
   <div id="playerRole" class="role-text"></div>
 
   <div class="d-flex gap-2 justify-content-center mb-3 flex-wrap">
@@ -70,7 +94,6 @@
   </div>
 
   <div id="discussionSection" class="d-none text-center mb-3">
-    <div><strong>ลำดับการพูด:</strong> <span id="speakingOrder"></span></div>
     <button class="btn btn-success btn-wide mt-2" onclick="startVote()">เริ่มโหวตเลือกผู้ต้องสงสัย</button>
   </div>
 
@@ -103,7 +126,7 @@ const roundInfoEl = document.getElementById('roundInfo');
 const nextPlayerBtn = document.getElementById('nextPlayerBtn');
 const showRoleBtn = document.getElementById('showRoleBtn');
 const discussionSection = document.getElementById('discussionSection');
-const speakingOrderEl = document.getElementById('speakingOrder');
+const speakingOrderBoxes = document.getElementById('speakingOrderBoxes');
 const votingSection = document.getElementById('votingSection');
 const voteListEl = document.getElementById('voteList');
 const resultSection = document.getElementById('resultSection');
@@ -206,17 +229,22 @@ function startGame() {
   resultSection.classList.add('d-none');
   nextPlayerBtn.disabled = false;
   showingRole = false;
-  speakingOrderEl.textContent = getSpeakingOrderText();
+
+  renderSpeakingOrderBoxes();
 }
 
-function getSpeakingOrderText() {
-  // เริ่มจากคนแรกที่ไม่ใช่มิสเตอร์ไวท์ ตามลำดับ
-  let order = [];
+// ฟังก์ชันนี้สร้างกล่องชื่อ + ลำดับการพูดตามลำดับวงกลม โดยเริ่มจากคนแรกที่ไม่ใช่มิสเตอร์ไวท์
+function renderSpeakingOrderBoxes() {
+  speakingOrderBoxes.innerHTML = '';
   let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
   for(let i=0; i<players.length; i++) {
-    order.push(players[(startIndex + i) % players.length]);
+    const idx = (startIndex + i) % players.length;
+    const box = document.createElement('div');
+    box.className = 'speaker-box';
+    if(i === 0) box.classList.add('start'); // คนเริ่มพูด
+    box.textContent = `${i+1}. ${players[idx]}`;
+    speakingOrderBoxes.appendChild(box);
   }
-  return order.join(' → ');
 }
 
 let showingRole = false;
@@ -230,7 +258,10 @@ function showNextPlayerName() {
     playerRoleEl.textContent = '';
     return;
   }
-  const player = players[currentPlayerIndex];
+  // คำนวณคนตามลำดับวงกลม เริ่มจากคนแรกที่ไม่ใช่มิสเตอร์ไวท์
+  let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+  const playerPos = (startIndex + currentPlayerIndex) % players.length;
+  const player = players[playerPos];
   playerRoleEl.innerHTML = `<div>คนถัดไปคือ: <b>${player}</b></div><div>กดปุ่ม "ดูบทบาท" เพื่อดูบทบาทของคุณ</div>`;
   nextPlayerBtn.disabled = true;
   showRoleBtn.classList.remove('d-none');
@@ -239,7 +270,9 @@ function showNextPlayerName() {
 
 function showRole() {
   if(showingRole) return;
-  const role = roles[currentPlayerIndex];
+  let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+  const playerPos = (startIndex + currentPlayerIndex) % players.length;
+  const role = roles[playerPos];
   playerRoleEl.innerHTML += `<div class="mt-3">บทบาทของคุณคือ: <b>${role}</b></div>`;
   showingRole = true;
   currentPlayerIndex++;
@@ -295,6 +328,7 @@ function confirmVote() {
   votedPlayers.forEach(p => {
     const idx = players.indexOf(p);
     const role = roles[idx];
+    // แก้ไม่โชว์คำตอนแจ้งผล
     resultHTML += `<p><b>${p}</b> ได้รับโหวต ${maxVotes} ครั้ง — บทบาท: <b>${role}</b></p>`;
   });
 
@@ -334,7 +368,8 @@ function nextRound() {
   resultSection.classList.add('d-none');
   nextPlayerBtn.disabled = false;
   showingRole = false;
-  speakingOrderEl.textContent = getSpeakingOrderText();
+
+  renderSpeakingOrderBoxes();
 }
 
 function resetGame() {
