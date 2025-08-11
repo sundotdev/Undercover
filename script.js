@@ -119,6 +119,8 @@ function getRandomCategoryAndSub() {
   return null;
 }
 
+const whiteWords = ['???', 'ไม่รู้', 'คำลับ', '???', '???']; // คำสำหรับ ไอขาว
+
 function assignRoles() {
   roles = [];
   playerWords = [];
@@ -160,12 +162,13 @@ function assignRoles() {
     do {
       pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
       attempts++;
-      if (attempts > 1000) break;
+      if (attempts > 1000) break; 
     } while (usedPairsSet.has(pair.join('|')));
     usedPairsSet.add(pair.join('|'));
 
     if (r === 'มิสเตอร์ไวท์') {
-      playerWords.push(pair[0]);
+      const whiteWord = whiteWords[Math.floor(Math.random()*whiteWords.length)];
+      playerWords.push(whiteWord);
     } else if (r === 'สายลับ') {
       playerWords.push(pair[1]);
     } else {
@@ -299,7 +302,6 @@ function nextRound() {
   discussionSection.classList.add('d-none');
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
-  showNextPlayerName();
 }
 
 function resetGame() {
