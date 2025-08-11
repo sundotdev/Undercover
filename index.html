@@ -1,583 +1,222 @@
 <!DOCTYPE html>
-<html lang="en" >
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Undercover Game - MR.WHITE & UNDERCOVER</title>
-  
+  <title>Undercover Game</title>
+
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  
-  <!-- FontAwesome 6 -->
+
+  <!-- FontAwesome -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-  
+
   <style>
-    /* โทนสีหลักโทนมืด ลึกลับ */
+    /* โทนสีสว่างสบายตา */
     body {
-      background: linear-gradient(135deg, #1e293b, #0f172a);
-      color: #f1f5f9;
+      background: #f9fafb; /* สีพื้นหลังขาวอมเทาอ่อน */
+      color: #333; /* ตัวหนังสือสีเข้ม */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    }
-    h1, h2, h3 {
-      font-weight: 700;
-      color: #a78bfa; /* ม่วงสวย */
-      text-align: center;
-      margin-bottom: 1rem;
-      user-select: none;
-    }
-
-    .container {
-      max-width: 480px;
-      margin: auto;
       padding: 1rem;
-      flex-grow: 1;
       display: flex;
       flex-direction: column;
+      align-items: center;
     }
 
-    /* ปุ่มธีม */
-    button, input, select {
-      border-radius: 0.5rem !important;
-    }
-
-    /* แยกสีบทบาท */
-    .role-mrwhite {
-      color: #ef4444; /* แดงสด */
+    h1, h2 {
       font-weight: 700;
+      margin-bottom: 1rem;
+      color: #222;
+      text-align: center;
+    }
+
+    .btn-primary {
+      background-color: #4f46e5;
+      border-color: #4f46e5;
+      transition: background-color 0.3s ease;
+    }
+    .btn-primary:hover {
+      background-color: #4338ca;
+      border-color: #4338ca;
+    }
+
+    /* บทบาทสีต่างๆ */
+    .role-mrwhite {
+      color: #ef4444; /* สีแดงสด */
+      font-weight: 600;
     }
     .role-undercover {
-      color: #7c3aed; /* ม่วง */
-      font-weight: 700;
-    }
-    .role-common {
-      color: #9ca3af; /* เทาอ่อน */
-      font-weight: 700;
-    }
-
-    /* รายการผู้เล่น */
-    #playerList li {
-      background: #334155;
-      margin-bottom: 0.3rem;
-      border-radius: 0.5rem;
-    }
-
-    /* กล่องลำดับพูด */
-    .speaker-box {
-      background: #475569;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      margin-bottom: 0.5rem;
+      color: #f59e0b; /* สีส้ม */
       font-weight: 600;
-      user-select: none;
-      cursor: default;
+    }
+    .role-citizen {
+      color: #10b981; /* สีเขียว */
+      font-weight: 600;
+    }
+
+    /* กล่องผู้พูด */
+    .speaker-box {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      margin: 0.2rem 0;
+      background: #fff;
+      color: #333;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
     .speaker-box.start {
-      background: #a78bfa;
-      color: #0f172a;
-      font-weight: 700;
+      border-color: #4f46e5;
+      box-shadow: 0 0 10px #4f46e5aa;
     }
 
     /* โหวตเลือกผู้เล่น */
     #voteList li {
-      background: #334155;
-      margin-bottom: 0.3rem;
-      border-radius: 0.5rem;
-      padding: 0.5rem 1rem;
       cursor: pointer;
       user-select: none;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.2s ease;
     }
     #voteList li.voted {
-      background-color: #a78bfa !important;
-      color: #0f172a;
+      background-color: #4f46e5;
+      color: white;
       font-weight: 700;
     }
 
-    /* การแสดงผลในมือถือให้เต็มจอ */
-    @media (max-width: 480px) {
-      body, html {
-        font-size: 1rem;
-      }
+    /* โซนหลัก */
+    .game-section {
+      width: 100%;
+      max-width: 460px;
+      margin: 0 auto 2rem auto;
+      background: white;
+      padding: 1.5rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
 
-    /* ปุ่ม radio ให้สวย */
-    .form-check-input:checked {
-      background-color: #7c3aed;
-      border-color: #7c3aed;
+    /* ปุ่ม radio โหวต */
+    .form-check-label {
+      user-select: none;
     }
 
-    /* loading message */
+    /* Loading message */
     #loadingMsg {
-      text-align: center;
+      color: #777;
       font-style: italic;
       margin-bottom: 1rem;
-      color: #a5b4fc;
-      user-select: none;
+      text-align: center;
+    }
+
+    /* ปุ่ม Next Round */
+    #nextRoundBtn {
+      display: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 500px) {
+      .game-section {
+        padding: 1rem;
+        max-width: 100%;
+      }
     }
   </style>
 </head>
 <body>
 
-  <div class="container shadow-lg rounded-lg p-4 my-5 bg-dark">
+  <h1>Undercover Game</h1>
 
-    <h1>UNDERCOVER GAME</h1>
-    <div id="loadingMsg">Loading categories...</div>
+  <div id="loadingMsg"></div>
 
-    <!-- Setup section -->
-    <div id="setup">
-      <div class="mb-3">
-        <label for="playerNameInput" class="form-label">Add Player</label>
-        <div class="input-group">
-          <input type="text" id="playerNameInput" class="form-control" placeholder="Player name" />
-          <button class="btn btn-primary" onclick="addPlayer()">
-            <i class="fa-solid fa-plus"></i> Add
-          </button>
-        </div>
-      </div>
-
-      <ul id="playerList" class="list-group mb-3"></ul>
-
-      <div class="row mb-3">
-        <div class="col-6">
-          <label for="mrWhiteCount" class="form-label">MR.WHITE Count</label>
-          <input type="number" id="mrWhiteCount" class="form-control" min="1" value="1" />
-        </div>
-        <div class="col-6">
-          <label for="undercoverCount" class="form-label">UNDERCOVER Count</label>
-          <input type="number" id="undercoverCount" class="form-control" min="1" value="1" />
-        </div>
-      </div>
-
-      <button id="startBtn" class="btn btn-primary w-100" disabled onclick="startGame()">
-        <i class="fa-solid fa-play"></i> Start Game
+  <div id="setup" class="game-section">
+    <h2>Setup Players & Roles</h2>
+    <div class="mb-3">
+      <input id="playerNameInput" type="text" class="form-control" placeholder="Enter player name" />
+      <button onclick="addPlayer()" class="btn btn-primary mt-2 w-100">
+        <i class="fa-solid fa-user-plus"></i> Add Player
       </button>
     </div>
 
-    <!-- Game section -->
-    <div id="game" class="d-none">
+    <ul id="playerList" class="list-group mb-3"></ul>
 
-      <div class="mb-2 text-center">
-        <h2 id="roundInfo"></h2>
-        <p id="categoryInfo" class="fst-italic text-info"></p>
+    <div class="row mb-3">
+      <div class="col-6">
+        <label for="mrWhiteCount" class="form-label">Number of MR.WHITE</label>
+        <input id="mrWhiteCount" type="number" min="1" max="5" value="1" class="form-control" />
       </div>
-
-      <div id="speakingOrderBoxes" class="mb-3"></div>
-
-      <div id="playerRole" class="mb-3 p-3 rounded bg-secondary text-center user-select-none"></div>
-
-      <div class="d-flex justify-content-center gap-2 mb-3">
-        <button id="showRoleBtn" class="btn btn-primary" onclick="showRole()">Show Role</button>
-        <button id="nextPlayerBtn" class="btn btn-outline-primary" onclick="showNextPlayerName()" disabled>Next Player</button>
+      <div class="col-6">
+        <label for="undercoverCount" class="form-label">Number of UNDERCOVER</label>
+        <input id="undercoverCount" type="number" min="1" max="5" value="1" class="form-control" />
       </div>
+    </div>
 
-      <div id="discussionSection" class="d-none text-center mb-3">
-        <h3>Discussion Time</h3>
-        <button class="btn btn-primary w-100" onclick="startVote()">Start Voting</button>
+    <button id="startBtn" disabled class="btn btn-success w-100" onclick="startGame()">
+      <i class="fa-solid fa-play"></i> Start Game
+    </button>
+  </div>
+
+  <div id="game" class="game-section" style="display:none;">
+
+    <h2 id="roundInfo">Round 1</h2>
+    <div class="mb-3">
+      <div id="categoryInfo" class="fst-italic text-secondary text-center mb-2"></div>
+      <div id="playerRole" class="p-3 border rounded text-center fs-5"></div>
+    </div>
+
+    <div id="speakingOrderBoxes" class="mb-3"></div>
+
+    <div class="d-flex justify-content-between mb-3">
+      <button id="nextPlayerBtn" class="btn btn-primary flex-grow-1 me-1" onclick="showNextPlayerName()">
+        Next Player <i class="fa-solid fa-arrow-right"></i>
+      </button>
+      <button id="showRoleBtn" class="btn btn-info flex-grow-1 ms-1" onclick="showRole()" style="display:none;">
+        Show Role <i class="fa-solid fa-eye"></i>
+      </button>
+    </div>
+
+    <div id="discussionSection" class="mb-3 d-none">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h4>Discussion Time</h4>
+        <div id="discussionTimer" class="fs-5 fw-bold text-primary">02:00</div>
       </div>
+      <button class="btn btn-warning w-100 mb-2" onclick="startVote()">Start Vote</button>
+    </div>
 
-      <div id="votingSection" class="d-none mb-3">
-        <h3 class="mb-3 text-center">Vote for</h3>
-        
-        <div class="mb-3 text-center">
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="voteTarget" id="voteMrWhite" value="MR.WHITE" checked>
-            <label class="form-check-label" for="voteMrWhite">MR.WHITE</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="voteTarget" id="voteUndercover" value="UNDERCOVER">
-            <label class="form-check-label" for="voteUndercover">UNDERCOVER</label>
-          </div>
+    <div id="votingSection" class="mb-3 d-none">
+      <h4>Vote for Role</h4>
+      <div class="mb-3">
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="voteTarget" id="voteMrWhite" value="MR.WHITE" checked />
+          <label class="form-check-label" for="voteMrWhite">
+            <span class="role-mrwhite">MR.WHITE</span>
+          </label>
         </div>
-
-        <ul id="voteList" class="list-group mb-3"></ul>
-
-        <button class="btn btn-primary w-100" onclick="confirmVote()">Confirm Vote</button>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="voteTarget" id="voteUndercover" value="UNDERCOVER" />
+          <label class="form-check-label" for="voteUndercover">
+            <span class="role-undercover">UNDERCOVER</span>
+          </label>
+        </div>
       </div>
 
-      <div id="resultSection" class="d-none text-center p-3 rounded bg-secondary">
-        <h3>Vote Result</h3>
-        <div id="voteResult"></div>
-        <button class="btn btn-primary mt-3" onclick="nextRound()">Next Round</button>
-        <button class="btn btn-outline-primary mt-3" onclick="resetGame()">Reset Game</button>
-      </div>
+      <ul id="voteList" class="list-group mb-3" style="max-height: 180px; overflow-y:auto;"></ul>
 
+      <button class="btn btn-success w-100" onclick="confirmVote()">
+        Confirm Vote <i class="fa-solid fa-check"></i>
+      </button>
+    </div>
+
+    <div id="resultSection" class="d-none">
+      <h4>Vote Result</h4>
+      <div id="voteResult" class="mb-3"></div>
+      <button id="nextRoundBtn" class="btn btn-secondary w-100" onclick="nextRound()" style="display:none;">
+        Next Round <i class="fa-solid fa-arrow-rotate-right"></i>
+      </button>
+      <button class="btn btn-danger w-100 mt-2" onclick="resetGame()">
+        Restart Game <i class="fa-solid fa-rotate-left"></i>
+      </button>
     </div>
   </div>
 
-  <!-- Bootstrap 5 JS + Popper -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-  <script>
-    // Variables
-    let players = [];
-    let roles = [];
-    let playerWords = [];
-    let currentPlayerIndex = 0;
-    let roundNumber = 1;
-    let categoriesData = null;
-
-    // Elements
-    const playerListEl = document.getElementById('playerList');
-    const startBtn = document.getElementById('startBtn');
-    const setupDiv = document.getElementById('setup');
-    const gameDiv = document.getElementById('game');
-    const playerRoleEl = document.getElementById('playerRole');
-    const roundInfoEl = document.getElementById('roundInfo');
-    const nextPlayerBtn = document.getElementById('nextPlayerBtn');
-    const showRoleBtn = document.getElementById('showRoleBtn');
-    const discussionSection = document.getElementById('discussionSection');
-    const speakingOrderBoxes = document.getElementById('speakingOrderBoxes');
-    const votingSection = document.getElementById('votingSection');
-    const voteListEl = document.getElementById('voteList');
-    const resultSection = document.getElementById('resultSection');
-    const voteResultEl = document.getElementById('voteResult');
-    const loadingMsg = document.getElementById('loadingMsg');
-    const categoryInfoEl = document.getElementById('categoryInfo');
-
-    // Load categories
-    async function loadCategories() {
-      loadingMsg.textContent = 'Loading categories...';
-      try {
-        const res = await fetch('data.json');
-        if (!res.ok) throw new Error('Failed to load data.json');
-        const json = await res.json();
-        categoriesData = json.categories;
-        loadingMsg.textContent = '';
-        checkStartButton();
-      } catch (e) {
-        loadingMsg.textContent = 'Failed to load categories';
-        console.error(e);
-      }
-    }
-
-    // Add player
-    function addPlayer() {
-      const input = document.getElementById('playerNameInput');
-      const name = input.value.trim();
-      if (name === '') return alert('Please enter player name');
-      if (players.includes(name)) return alert('Duplicate name, please change');
-      players.push(name);
-      input.value = '';
-      renderPlayerList();
-      checkStartButton();
-    }
-
-    // Render player list
-    function renderPlayerList() {
-      playerListEl.innerHTML = '';
-      players.forEach((p, i) => {
-        const li = document.createElement('li');
-        li.className = 'list-group-item d-flex justify-content-between align-items-center';
-
-        const span = document.createElement('span');
-        span.textContent = p;
-
-        const btnDel = document.createElement('button');
-        btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
-        btnDel.className = 'btn btn-sm btn-outline-danger';
-        btnDel.title = 'Remove player';
-        btnDel.onclick = () => {
-          players.splice(i, 1);
-          renderPlayerList();
-          checkStartButton();
-        };
-
-        li.appendChild(span);
-        li.appendChild(btnDel);
-        playerListEl.appendChild(li);
-      });
-    }
-
-    // Check start button enable
-    function checkStartButton() {
-      const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
-      const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
-      const totalNeeded = mrWhiteCount + undercoverCount;
-      if (
-        players.length >= totalNeeded + 1 &&
-        mrWhiteCount >= 1 &&
-        undercoverCount >= 1 &&
-        categoriesData !== null
-      ) {
-        startBtn.disabled = false;
-      } else {
-        startBtn.disabled = true;
-      }
-    }
-
-    document.getElementById('mrWhiteCount').addEventListener('change', checkStartButton);
-    document.getElementById('undercoverCount').addEventListener('change', checkStartButton);
-
-    // Shuffle utility
-    function shuffleArray(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-
-    // Role name with color
-    function roleNameColored(role) {
-      switch (role) {
-        case 'MR.WHITE':
-          return `<span class="role-mrwhite">${role}</span>`;
-        case 'UNDERCOVER':
-          return `<span class="role-undercover">${role}</span>`;
-        case 'COMMON PERSON':
-          return `<span class="role-common">${role}</span>`;
-        default:
-          return role;
-      }
-    }
-
-    // Get random category
-    function getRandomCategory() {
-      const keys = Object.keys(categoriesData);
-      const cat = keys[Math.floor(Math.random() * keys.length)];
-      const wordPairs = categoriesData[cat];
-      return { category: cat, wordPairs: wordPairs };
-    }
-
-    // Assign roles and words
-    function assignRoles() {
-      roles = [];
-      playerWords = [];
-      const totalPlayers = players.length;
-      const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
-      const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
-      const citizenCount = totalPlayers - mrWhiteCount - undercoverCount;
-      if (citizenCount < 0) {
-        alert('Too many special roles for players');
-        return false;
-      }
-      for (let i = 0; i < mrWhiteCount; i++) roles.push('MR.WHITE');
-      for (let i = 0; i < undercoverCount; i++) roles.push('UNDERCOVER');
-      for (let i = 0; i < citizenCount; i++) roles.push('COMMON PERSON');
-      roles = shuffleArray(roles);
-
-      // Start speaker is not MR.WHITE
-      while (roles[0] === 'MR.WHITE') {
-        roles = shuffleArray(roles);
-      }
-
-      const catInfo = getRandomCategory();
-      if (!catInfo) {
-        alert('Category data not found');
-        return false;
-      }
-      const wordPairs = catInfo.wordPairs;
-      if (!wordPairs || wordPairs.length === 0) {
-        alert('Category has no words');
-        return false;
-      }
-
-      categoryInfoEl.textContent = `Category: ${catInfo.category}`;
-
-      // Pick one pair of words for all
-      const chosenPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
-
-      // Assign words based on role
-      for (let r of roles) {
-        if (r === 'MR.WHITE') {
-          playerWords.push('??? NO WORD');
-        } else if (r === 'UNDERCOVER') {
-          playerWords.push(chosenPair[1]);
-        } else {
-          playerWords.push(chosenPair[0]);
-        }
-      }
-      return true;
-    }
-
-    // Render speaking order boxes
-    function renderSpeakingOrderBoxes() {
-      speakingOrderBoxes.innerHTML = '';
-      let startIndex = roles.findIndex((r) => r !== 'MR.WHITE');
-      for (let i = 0; i < players.length; i++) {
-        const idx = (startIndex + i) % players.length;
-        const box = document.createElement('div');
-        box.className = 'speaker-box';
-        if (i === 0) box.classList.add('start');
-        box.textContent = `${i + 1}. ${players[idx]}`;
-        speakingOrderBoxes.appendChild(box);
-      }
-    }
-
-    let showingRole = false;
-
-    // Show next player's name
-    function showNextPlayerName() {
-      if (currentPlayerIndex >= players.length) {
-        alert('All players have seen their roles');
-        nextPlayerBtn.disabled = true;
-        discussionSection.classList.remove('d-none');
-        showRoleBtn.classList.add('d-none');
-        playerRoleEl.textContent = '';
-        return;
-      }
-      let startIndex = roles.findIndex((r) => r !== 'MR.WHITE');
-      const playerPos = (startIndex + currentPlayerIndex) % players.length;
-      const player = players[playerPos];
-      playerRoleEl.innerHTML = `<div>Next player: <b>${player}</b></div><div>Click "Show Role" to see your role</div>`;
-      nextPlayerBtn.disabled = true;
-      showRoleBtn.classList.remove('d-none');
-      showingRole = false;
-    }
-
-    // Show role for current player
-    function showRole() {
-      if (showingRole) return;
-      let startIndex = roles.findIndex((r) => r !== 'MR.WHITE');
-      const playerPos = (startIndex + currentPlayerIndex) % players.length;
-      const role = roles[playerPos];
-      const word = playerWords[playerPos] || '???';
-
-      playerRoleEl.innerHTML = `<div>Your Role: ${roleNameColored(role)}</div><div>Word: <b>${word}</b></div>`;
-
-      showingRole = true;
-      currentPlayerIndex++;
-      nextPlayerBtn.disabled = false;
-      showRoleBtn.classList.add('d-none');
-    }
-
-    // Voting variables
-    let voteSelections = new Set();
-
-    // Start voting UI
-    function startVote() {
-      discussionSection.classList.add('d-none');
-      votingSection.classList.remove('d-none');
-      voteSelections.clear();
-      voteListEl.innerHTML = '';
-
-      // Fill vote list with players
-      players.forEach((p, i) => {
-        const li = document.createElement('li');
-        li.textContent = p;
-        li.className = 'list-group-item';
-        li.onclick = () => {
-          if (voteSelections.has(i)) {
-            voteSelections.delete(i);
-            li.classList.remove('voted');
-          } else {
-            voteSelections.add(i);
-            li.classList.add('voted');
-          }
-        };
-        voteListEl.appendChild(li);
-      });
-    }
-
-    // Confirm vote and calculate results
-    function confirmVote() {
-      if (voteSelections.size === 0) {
-        alert('Please select at least one player to vote');
-        return;
-      }
-      // Which role is targeted?
-      const voteTarget = document.querySelector('input[name="voteTarget"]:checked').value;
-
-      votingSection.classList.add('d-none');
-      resultSection.classList.remove('d-none');
-
-      let found = false;
-      let wrongVotes = [];
-
-      voteSelections.forEach((i) => {
-        if (roles[i] === voteTarget) {
-          found = true;
-        } else {
-          wrongVotes.push(players[i]);
-        }
-      });
-
-      let voteText = '';
-
-      if (found) {
-        voteText += `<p><b>You found a ${voteTarget}! Game ends.</b></p>`;
-      } else {
-        voteText += `<p><b>Wrong vote! Those who voted wrong must drink 1 drink</b></p>`;
-        voteText += `<p>Wrong voters: ${wrongVotes.join(', ')}</p>`;
-      }
-
-      // Show roles for all players
-      voteText += `<h5>Player Roles:</h5><ul style="text-align:left;">`;
-      players.forEach((p, i) => {
-        voteText += `<li>${p} = ${roleNameColored(roles[i])}</li>`;
-      });
-      voteText += `</ul>`;
-
-      voteResultEl.innerHTML = voteText;
-    }
-
-    // Next round reset
-    function nextRound() {
-      roundNumber++;
-      currentPlayerIndex = 0;
-      if (!assignRoles()) {
-        alert('Cannot start new round');
-        resetGame();
-        return;
-      }
-      renderSpeakingOrderBoxes();
-      roundInfoEl.textContent = `Round ${roundNumber} / Players ${players.length}`;
-      playerRoleEl.textContent = '';
-      nextPlayerBtn.disabled = false;
-      showRoleBtn.classList.add('d-none');
-      discussionSection.classList.add('d-none');
-      votingSection.classList.add('d-none');
-      resultSection.classList.add('d-none');
-      showNextPlayerName();
-    }
-
-    // Reset everything
-    function resetGame() {
-      players = [];
-      roles = [];
-      playerWords = [];
-      currentPlayerIndex = 0;
-      roundNumber = 1;
-      setupDiv.classList.remove('d-none');
-      gameDiv.classList.add('d-none');
-      playerListEl.innerHTML = '';
-      categoryInfoEl.textContent = '';
-      playerRoleEl.textContent = '';
-      nextPlayerBtn.disabled = false;
-      showRoleBtn.classList.add('d-none');
-      discussionSection.classList.add('d-none');
-      votingSection.classList.add('d-none');
-      resultSection.classList.add('d-none');
-      startBtn.disabled = true;
-    }
-
-    // Start game
-    function startGame() {
-      if (players.length < 3) {
-        alert('At least 3 players needed');
-        return;
-      }
-      if (!assignRoles()) return;
-      setupDiv.classList.add('d-none');
-      gameDiv.classList.remove('d-none');
-      renderSpeakingOrderBoxes();
-      roundInfoEl.textContent = `Round ${roundNumber} / Players ${players.length}`;
-      playerRoleEl.textContent = '';
-      currentPlayerIndex = 0;
-      nextPlayerBtn.disabled = false;
-      showRoleBtn.classList.add('d-none');
-      discussionSection.classList.add('d-none');
-      votingSection.classList.add('d-none');
-      resultSection.classList.add('d-none');
-      showNextPlayerName();
-    }
-
-    // Load categories at start
-    loadCategories();
-  </script>
-
+  <script src="script.js"></script>
 </body>
 </html>
