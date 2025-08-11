@@ -287,39 +287,37 @@ function confirmVote() {
   votingSection.classList.add('d-none');
   resultSection.classList.remove('d-none');
 
-  let found = false;
+  let foundTarget = false;
+  let foundMrWhite = false;
+  let foundUndercover = false;
   let wrongVotes = [];
 
-  // ลบผู้เล่นที่ถูกโหวตและอัปเดตสถานะหากถูกเจอ MR.WHITE หรือ UNDERCOVER
+  // เช็คคนที่ถูกโหวต
   voteSelections.forEach(i => {
-    const votedRole = roles[i];
-    const votedName = players[i];
-    if (votedRole === voteTarget) {
-      found = true;
-      if (votedRole === 'MR.WHITE') foundMrWhiteCount++;
-      else if (votedRole === 'UNDERCOVER') foundUndercoverCount++;
-
-      // ลบผู้เล่นและบทบาทออกจากเกม
-      players.splice(i,1);
-      roles.splice(i,1);
-      playerWords.splice(i,1);
-    } else {
-      wrongVotes.push(players[i]);
+    if (roles[i] === voteTarget) {
+      foundTarget = true;
     }
+    if (roles[i] === 'MR.WHITE') foundMrWhite = true;
+    if (roles[i] === 'UNDERCOVER') foundUndercover = true;
+    if (roles[i] !== voteTarget) wrongVotes.push(players[i]);
   });
 
+  // ถ้าเจอ MR.WHITE หรือ UNDERCOVER ในโหวตที่ถูกต้องด้วย
+  if (voteTarget === 'MR.WHITE' && foundMrWhite) foundMrWhite = true;
+  if (voteTarget === 'UNDERCOVER' && foundUndercover) foundUndercover = true;
+
   let voteText = '';
+  if (foundTarget) {
+    // ถ้าเจอเป้าหมาย ให้เช็คว่าเจอครบสองคนหรือยัง
+    // เช็คว่ามี MR.WHITE และ UNDERCOVER ถูกจับครบหรือยัง
+    const mrWhiteFoundInVotes = roles.some((r, idx) => r === 'MR.WHITE' && voteSelections.has(idx));
+    const undercoverFoundInVotes = roles.some((r, idx) => r === 'UNDERCOVER' && voteSelections.has(idx));
 
-  if (found) {
-    voteText += `<p><b>Success! You found <span class="${roleClass(voteTarget)}">${voteTarget}</span>.</b></p>`;
-    voteText += `<p>Players voted wrong: ${wrongVotes.length > 0 ? wrongVotes.join(', ') : 'None'}</p>`;
-
-    // ตรวจสอบว่าเจอครบทั้ง MR.WHITE และ UNDERCOVER หรือยัง
-    if (foundMrWhiteCount === totalMrWhite && foundUndercoverCount === totalUndercover) {
-      voteText += `<p><b>All special roles found! Game Over.</b></p>`;
+    if (mrWhiteFoundInVotes && undercoverFoundInVotes) {
+      voteText += `<p><b>Success! You found both <span class="role-mrwhite">MR.WHITE</span> and <span class="role-undercover">UNDERCOVER</span>. The game ends.</b></p>`;
       nextRoundBtn.style.display = 'none';
     } else {
-      voteText += `<p>Keep playing. Remaining MR.WHITE: ${totalMrWhite - foundMrWhiteCount}, UNDERCOVER: ${totalUndercover - foundUndercoverCount}</p>`;
+      voteText += `<p><b>You found ${voteTarget}, but need to find both MR.WHITE and UNDERCOVER to end the game. Continue playing.</b></p>`;
       nextRoundBtn.style.display = 'inline-block';
     }
   } else {
@@ -328,9 +326,10 @@ function confirmVote() {
     nextRoundBtn.style.display = 'inline-block';
   }
 
-  voteText += `<h5>Player roles:</h5><ul>`;
-  players.forEach((p,i) => {
-    voteText += `<li>${p} = <span class="${roleClass(roles[i])}">${roleName(roles[i])}</span></li>`;
+  // แสดง Role เฉพาะคนที่ถูกโหวตเท่านั้น
+  voteText += `<h5>Roles of voted players:</h5><ul>`;
+  voteSelections.forEach(i => {
+    voteText += `<li>${players[i]} = <span class="${roleClass(roles[i])}">${roleName(roles[i])}</span></li>`;
   });
   voteText += `</ul>`;
 
@@ -408,3 +407,4 @@ function startGame() {
 }
 
 loadCategories();
+
