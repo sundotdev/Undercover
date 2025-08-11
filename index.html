@@ -360,4 +360,50 @@ function confirmVote() {
   }
 }
 
-function next
+function nextRound() {
+  roundNumber++;
+  if(!assignRoles()) {
+    alert('ไม่สามารถเริ่มรอบใหม่ได้');
+    resetGame();
+    return;
+  }
+  currentPlayerIndex = 0;
+  roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
+
+  playerRoleEl.textContent = '';
+  nextPlayerBtn.classList.remove('d-none');
+  showRoleBtn.classList.add('d-none');
+  discussionSection.classList.add('d-none');
+  votingSection.classList.add('d-none');
+  resultSection.classList.add('d-none');
+  nextPlayerBtn.disabled = false;
+  showingRole = false;
+
+  renderSpeakingOrderBoxes();
+}
+
+function resetGame() {
+  if(!confirm('ต้องการเริ่มเกมใหม่? ข้อมูลทั้งหมดจะถูกลบ')) return;
+  players = [];
+  roles = [];
+  currentPlayerIndex = 0;
+  roundNumber = 1;
+  setupDiv.classList.remove('d-none');
+  gameDiv.classList.add('d-none');
+  renderPlayerList();
+  checkStartButton();
+  playerRoleEl.textContent = '';
+  discussionSection.classList.add('d-none');
+  votingSection.classList.add('d-none');
+  resultSection.classList.add('d-none');
+  nextPlayerBtn.disabled = false;
+  showRoleBtn.classList.add('d-none');
+}
+
+renderPlayerList();
+checkStartButton();
+
+</script>
+
+</body>
+</html>
