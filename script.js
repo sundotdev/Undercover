@@ -19,227 +19,176 @@ const votingSection = document.getElementById('votingSection');
 const voteListEl = document.getElementById('voteList');
 const resultSection = document.getElementById('resultSection');
 const voteResultEl = document.getElementById('voteResult');
-const loadingMsg = document.getElementById('loadingMsg');
-const categoryInfoEl = document.getElementById('categoryInfo');
+const loadingMsgEl = document.getElementById('loadingMsg');
+const categoryInfo = document.getElementById('categoryInfo');
 const discussionTimer = document.getElementById('discussionTimer');
 const nextRoundBtn = document.getElementById('nextRoundBtn');
 
-let voteSelections = new Set();
+let selectedVoteIndex = null;
 let discussionCountdown = null;
 
-let totalMrWhite = 0;
-let totalUndercover = 0;
+let totalMrWhite = 1;
+let totalUndercover = 1;
 let foundMrWhiteCount = 0;
 let foundUndercoverCount = 0;
-
-// โหลด categories จากไฟล์ data.json
-async function loadCategories() {
-  loadingMsg.textContent = 'Loading categories...';
-  try {
-    const res = await fetch('data.json');
-    if (!res.ok) throw new Error('Failed to load data.json');
-    const json = await res.json();
-    categoriesData = json.categories;
-    loadingMsg.textContent = '';
-    checkStartButton();
-  } catch (e) {
-    loadingMsg.textContent = 'Failed to load categories';
-    console.error(e);
-  }
-}
 
 function addPlayer() {
   const input = document.getElementById('playerNameInput');
   const name = input.value.trim();
-  if (name === '') return alert('Please enter player name');
-  if (players.includes(name)) return alert('Duplicate name, please change');
+  if (!name) {
+    alert('Please enter player name');
+    return;
+  }
+  if (players.includes(name)) {
+    alert('Player name must be unique');
+    return;
+  }
   players.push(name);
   input.value = '';
   renderPlayerList();
-  checkStartButton();
+  updateStartButton();
 }
 
 function renderPlayerList() {
   playerListEl.innerHTML = '';
-  players.forEach((p, i) => {
+  players.forEach((p, idx) => {
     const li = document.createElement('li');
     li.className = 'list-group-item d-flex justify-content-between align-items-center';
-
-    const span = document.createElement('span');
-    span.textContent = p;
-
-    const btnDel = document.createElement('button');
-    btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
-    btnDel.className = 'btn btn-sm btn-outline-danger';
-    btnDel.title = 'Remove player';
-    btnDel.onclick = () => {
-      players.splice(i, 1);
+    li.textContent = p;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm btn-danger';
+    btn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    btn.onclick = () => {
+      players.splice(idx, 1);
       renderPlayerList();
-      checkStartButton();
+      updateStartButton();
     };
-
-    li.appendChild(span);
-    li.appendChild(btnDel);
+    li.appendChild(btn);
     playerListEl.appendChild(li);
   });
 }
 
-function checkStartButton() {
-  const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
-  const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
-  const totalNeeded = mrWhiteCount + undercoverCount;
-  startBtn.disabled = !(players.length >= totalNeeded + 1 && mrWhiteCount >= 1 && undercoverCount >= 1 && categoriesData !== null);
+function updateStartButton() {
+  totalMrWhite = Number(document.getElementById('mrWhiteCount').value);
+  totalUndercover = Number(document.getElementById('undercoverCount').value);
+  startBtn.disabled = players.length < (totalMrWhite + totalUndercover + 1);
 }
 
-document.getElementById('mrWhiteCount').addEventListener('change', checkStartButton);
-document.getElementById('undercoverCount').addEventListener('change', checkStartButton);
-
-function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+async function startGame() {
+  if (players.length < (totalMrWhite + totalUndercover + 1)) {
+    alert('Not enough players for selected roles.');
+    return;
   }
-  return arr;
+  await loadCategories();
+  assignRoles();
+  chooseWords();
+  currentPlayerIndex = 0;
+  roundNumber = 1;
+  foundMrWhiteCount = 0;
+  foundUndercoverCount = 0;
+  setupDiv.style.display = 'none';
+  gameDiv.style.display = 'block';
+  updateRoundInfo();
+  speakingOrderBoxes.innerHTML = '';
+  discussionSection.classList.add('d-none');
+  votingSection.classList.add('d-none');
+  resultSection.classList.add('d-none');
+  playerRoleEl.textContent = '';
+  showRoleBtn.style.display = 'none';
+  nextPlayerBtn.style.display = 'inline-block';
+  alert('Game started! กด Next Player เพื่อดูชื่อผู้พูดคนแรก');
 }
 
-function roleName(role) {
-  switch (role) {
-    case 'MR.WHITE': return 'MR.WHITE';
-    case 'UNDERCOVER': return 'UNDERCOVER';
-    case 'COMMON PERSON': return 'COMMON PERSON';
-    default: return role;
+async function loadCategories() {
+  loadingMsgEl.textContent = 'Loading categories...';
+  try {
+    const res = await fetch('data.json');
+    if (!res.ok) throw new Error('Failed to load data.json');
+    categoriesData = await res.json();
+    loadingMsgEl.textContent = '';
+  } catch (err) {
+    loadingMsgEl.textContent = 'Failed to load categories.';
+    alert('Cannot load categories.json, please add it to your folder.');
+    throw err;
   }
-}
-
-function roleClass(role) {
-  switch (role) {
-    case 'MR.WHITE': return 'role-mrwhite';
-    case 'UNDERCOVER': return 'role-undercover';
-    case 'COMMON PERSON': return 'role-citizen';
-    default: return '';
-  }
-}
-
-function getRandomCategory() {
-  const keys = Object.keys(categoriesData);
-  const cat = keys[Math.floor(Math.random() * keys.length)];
-  const wordPairs = categoriesData[cat];
-  return { category: cat, wordPairs: wordPairs };
 }
 
 function assignRoles() {
   roles = [];
-  playerWords = [];
   const totalPlayers = players.length;
-  totalMrWhite = parseInt(document.getElementById('mrWhiteCount').value);
-  totalUndercover = parseInt(document.getElementById('undercoverCount').value);
-  foundMrWhiteCount = 0;
-  foundUndercoverCount = 0;
-
-  const citizenCount = totalPlayers - totalMrWhite - totalUndercover;
-  if (citizenCount < 0) {
-    alert('Too many roles for players');
-    return false;
-  }
   for (let i = 0; i < totalMrWhite; i++) roles.push('MR.WHITE');
   for (let i = 0; i < totalUndercover; i++) roles.push('UNDERCOVER');
-  for (let i = 0; i < citizenCount; i++) roles.push('COMMON PERSON');
-  roles = shuffleArray(roles);
-
-  // MR.WHITE ไม่ควรเริ่มแจกก่อนใคร
-  while (roles[0] === 'MR.WHITE') {
-    roles = shuffleArray(roles);
-  }
-
-  const catInfo = getRandomCategory();
-  if (!catInfo) {
-    alert('No category data found');
-    return false;
-  }
-  const wordPairs = catInfo.wordPairs;
-  if (!wordPairs || wordPairs.length === 0) {
-    alert('Category has no words');
-    return false;
-  }
-
-  categoryInfoEl.textContent = `Category: ${catInfo.category}`;
-
-  const chosenPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
-
-  for (let r of roles) {
-    if (r === 'MR.WHITE') {
-      playerWords.push('???');
-    } else if (r === 'UNDERCOVER') {
-      playerWords.push(chosenPair[1]);
-    } else {
-      playerWords.push(chosenPair[0]);
-    }
-  }
-  return true;
-}
-
-function renderSpeakingOrderBoxes() {
-  speakingOrderBoxes.innerHTML = '';
-  let startIndex = roles.findIndex(r => r !== 'MR.WHITE');
-  for (let i = 0; i < players.length; i++) {
-    const idx = (startIndex + i) % players.length;
-    const box = document.createElement('div');
-    box.className = 'speaker-box';
-    if (i === 0) box.classList.add('start');
-    box.textContent = `${i + 1}. ${players[idx]}`;
-    speakingOrderBoxes.appendChild(box);
+  for (let i = roles.length; i < totalPlayers; i++) roles.push('CITIZEN');
+  for (let i = roles.length -1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [roles[i], roles[j]] = [roles[j], roles[i]];
   }
 }
 
-let showingRole = false;
+function chooseWords() {
+  const categories = Object.keys(categoriesData.categories);
+  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+  categoryInfo.textContent = `Category: ${randomCategory}`;
+  const wordPairs = categoriesData.categories[randomCategory];
+  const randomPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
+  playerWords = roles.map(role => {
+    if (role === 'MR.WHITE') return '??? (ไม่บอกคำ)';
+    if (role === 'UNDERCOVER') return randomPair[1];
+    return randomPair[0];
+  });
+}
+
+function updateRoundInfo() {
+  roundInfoEl.textContent = `Round ${roundNumber}`;
+}
 
 function showNextPlayerName() {
+  if (players.length === 0) return alert('No players left.');
   if (currentPlayerIndex >= players.length) {
-    // แจกบทบาทครบทุกคนแล้ว ให้เริ่มรอบ Discussion
-    nextPlayerBtn.disabled = true;
-    discussionSection.classList.remove('d-none');
+    nextPlayerBtn.style.display = 'none';
     showRoleBtn.style.display = 'none';
     playerRoleEl.textContent = '';
-    startDiscussionTimer();
+    discussionSection.classList.remove('d-none');
+    startDiscussionCountdown();
     return;
   }
-  let startIndex = roles.findIndex(r => r !== 'MR.WHITE');
-  const playerPos = (startIndex + currentPlayerIndex) % players.length;
-  const player = players[playerPos];
-  playerRoleEl.innerHTML = `<div>Next player: <b>${player}</b></div><div>Press "Show Role" to see your role</div>`;
-  nextPlayerBtn.disabled = true;
+  const name = players[currentPlayerIndex];
+  playerRoleEl.innerHTML = `<strong>Player:</strong> ${name}`;
   showRoleBtn.style.display = 'inline-block';
-  showingRole = false;
+  nextPlayerBtn.style.display = 'none';
 }
 
 function showRole() {
-  if (showingRole) return;
-  let startIndex = roles.findIndex(r => r !== 'MR.WHITE');
-  const playerPos = (startIndex + currentPlayerIndex) % players.length;
-  const role = roles[playerPos];
-  const word = playerWords[playerPos] || '???';
-
-  playerRoleEl.innerHTML = `<div>Your role is: <b class="${roleClass(role)}">${roleName(role)}</b></div><div>Your word: <b>${word}</b></div>`;
-
-  showingRole = true;
-  currentPlayerIndex++;
-  nextPlayerBtn.disabled = false;
+  const role = roles[currentPlayerIndex];
+  let roleText = '';
+  let roleClass = '';
+  if (role === 'MR.WHITE') {
+    roleText = 'MR.WHITE';
+    roleClass = 'role-mrwhite';
+  } else if (role === 'UNDERCOVER') {
+    roleText = 'UNDERCOVER';
+    roleClass = 'role-undercover';
+  } else {
+    roleText = 'CITIZEN';
+    roleClass = 'role-citizen';
+  }
+  playerRoleEl.innerHTML = `<strong>Role:</strong> <span class="${roleClass}">${roleText}</span><br>
+    <strong>Word:</strong> ${playerWords[currentPlayerIndex]}`;
   showRoleBtn.style.display = 'none';
+  nextPlayerBtn.style.display = 'inline-block';
+  currentPlayerIndex++;
 }
 
-function startDiscussionTimer() {
+function startDiscussionCountdown() {
   let timeLeft = 120;
   discussionTimer.textContent = formatTime(timeLeft);
-
-  if (discussionCountdown) clearInterval(discussionCountdown);
-
   discussionCountdown = setInterval(() => {
     timeLeft--;
     discussionTimer.textContent = formatTime(timeLeft);
-
     if (timeLeft <= 0) {
       clearInterval(discussionCountdown);
-      discussionTimer.textContent = 'Time Up!';
+      discussionTimer.textContent = '';
+      startVote();
     }
   }, 1000);
 }
@@ -251,203 +200,110 @@ function formatTime(sec) {
 }
 
 function startVote() {
-  if (discussionCountdown) {
-    clearInterval(discussionCountdown);
-    discussionTimer.textContent = '';
-  }
   discussionSection.classList.add('d-none');
   votingSection.classList.remove('d-none');
-
   voteListEl.innerHTML = '';
-  voteSelections.clear();
-
+  selectedVoteIndex = null;
   players.forEach((p, i) => {
     const li = document.createElement('li');
     li.className = 'list-group-item';
     li.textContent = p;
-    li.onclick = () => toggleVote(p, li);
+    li.onclick = () => selectVote(i, li);
     voteListEl.appendChild(li);
   });
 }
 
-function toggleVote(name, liEl) {
-  if (voteSelections.has(name)) {
-    voteSelections.delete(name);
-    liEl.classList.remove('voted');
-  } else {
-    voteSelections.add(name);
-    liEl.classList.add('voted');
-  }
+function selectVote(index, liElement) {
+  [...voteListEl.children].forEach(li => li.classList.remove('voted'));
+  selectedVoteIndex = index;
+  liElement.classList.add('voted');
 }
 
 function confirmVote() {
-  if (voteSelections.size === 0) {
-    alert('Please select player(s) to vote');
+  if (selectedVoteIndex === null) {
+    alert('Please select one player to vote out.');
     return;
   }
-
   const voteTarget = document.querySelector('input[name="voteTarget"]:checked').value;
-
+  const votedRole = roles[selectedVoteIndex];
+  const votedName = players[selectedVoteIndex];
+  let voteCorrect = voteTarget === votedRole;
+  let resultHTML = `
+    <p><strong>Voted Player:</strong> ${votedName}</p>
+    <p><strong>Role:</strong> ${votedRole}</p>
+    <p><strong>Vote for role:</strong> ${voteTarget}</p>
+  `;
+  if (voteCorrect) {
+    foundMrWhiteCount += votedRole === 'MR.WHITE' ? 1 : 0;
+    foundUndercoverCount += votedRole === 'UNDERCOVER' ? 1 : 0;
+    players.splice(selectedVoteIndex, 1);
+    roles.splice(selectedVoteIndex, 1);
+    playerWords.splice(selectedVoteIndex, 1);
+    resultHTML += `<p class="text-success">โหวตถูก! ผู้ถูกโหวตออกจากเกม</p>`;
+  } else {
+    resultHTML += `<p class="text-danger">โหวตผิด! ผู้โหวตต้องดื่ม 1 แก้ว</p>`;
+  }
+  voteResultEl.innerHTML = resultHTML;
   votingSection.classList.add('d-none');
   resultSection.classList.remove('d-none');
-
-  let foundTarget = false;
-  let wrongVotes = [];
-
-  // เก็บ index ของผู้เล่นที่จะถูกลบ
-  let removedIndexes = [];
-
-  // voteSelections เป็น Set ของชื่อผู้เล่น => แปลงชื่อเป็น index
-  voteSelections.forEach(name => {
-    const idx = players.indexOf(name);
-    if (idx === -1) return; // ถ้าคนนี้โดนลบไปแล้วข้าม
-
-    if (roles[idx] === voteTarget) {
-      foundTarget = true;
-      if (roles[idx] === 'MR.WHITE') foundMrWhiteCount++;
-      if (roles[idx] === 'UNDERCOVER') foundUndercoverCount++;
-      removedIndexes.push(idx);
-    } else {
-      wrongVotes.push(name);
-    }
-  });
-
-  // ลบผู้เล่นและบทบาทที่ถูกจับออก เรียงจาก index มากไปน้อย
-  removedIndexes.sort((a,b) => b - a);
-  for (let idx of removedIndexes) {
-    players.splice(idx, 1);
-    roles.splice(idx, 1);
-    playerWords.splice(idx, 1);
-  }
-
-  // เรียงลำดับการพูดใหม่
-  renderSpeakingOrderBoxes();
-
-  let voteText = '';
-
-  if (foundTarget) {
-    if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
-      voteText += `<p><b>Success! You found all <span class="role-mrwhite">MR.WHITE</span> and <span class="role-undercover">UNDERCOVER</span>. The game ends.</b></p>`;
-      nextRoundBtn.textContent = 'เล่นรอบใหม่';
-      nextRoundBtn.style.display = 'inline-block';
-    } else {
-      voteText += `<p><b>You found some ${voteTarget}, but need to find all MR.WHITE and UNDERCOVER to end the game. Continue playing.</b></p>`;
-      nextRoundBtn.textContent = 'Next Round';
-      nextRoundBtn.style.display = 'inline-block';
-    }
-  } else {
-    voteText += `<p><b>Wrong vote! Those who voted wrong must drink 1 shot.</b></p>`;
-    voteText += `<p>Players voted wrong: ${wrongVotes.join(', ')}</p>`;
-    nextRoundBtn.textContent = 'Next Round';
-    nextRoundBtn.style.display = 'inline-block';
-  }
-
-  voteText += `<h5>Roles of voted players:</h5><ul>`;
-  voteSelections.forEach(name => {
-    const idx = players.indexOf(name);
-    // idx อาจ = -1 ถ้าออกจากเกมแล้ว
-    if (idx === -1) {
-      voteText += `<li>${name} = (ออกจากเกมแล้ว)</li>`;
-    } else {
-      voteText += `<li>${name} = <span class="${roleClass(roles[idx])}">${roleName(roles[idx])}</span></li>`;
-    }
-  });
-  voteText += `</ul>`;
-
-  voteResultEl.innerHTML = voteText;
+  nextRoundBtn.style.display = 'inline-block';
+  nextPlayerBtn.style.display = 'none';
+  showRoleBtn.style.display = 'none';
+  checkGameEnd();
 }
 
-nextRoundBtn.onclick = () => {
-  if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
-    resetGame();
-    return;
-  }
-  if (players.length < (totalMrWhite + totalUndercover + 1)) {
-    alert('ไม่สามารถเล่นต่อได้ เนื่องจากผู้เล่นน้อยเกินไป');
-    resetGame();
-    return;
-  }
-
-  roundNumber++;
-  currentPlayerIndex = 0;
-
-  // เรียงลำดับการพูดใหม่ทุกครั้ง
-  renderSpeakingOrderBoxes();
-
-  roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
-  playerRoleEl.textContent = '';
-  nextPlayerBtn.disabled = false;
-  showRoleBtn.style.display = 'none';
-  discussionSection.classList.remove('d-none');
-  votingSection.classList.add('d-none');
+function nextRound() {
   resultSection.classList.add('d-none');
-  nextRoundBtn.style.display = 'none';
-
-  showNextPlayerName();
-};
-
-
-function startGame() {
-  roundNumber = 1;
-  currentPlayerIndex = 0;
-  foundMrWhiteCount = 0;
-  foundUndercoverCount = 0;
-
-  totalMrWhite = parseInt(document.getElementById('mrWhiteCount').value);
-  totalUndercover = parseInt(document.getElementById('undercoverCount').value);
-
-  if (!assignRoles()) {
-    alert('Failed to assign roles');
-    return;
-  }
-  setupDiv.style.display = 'none';
-  gameDiv.style.display = 'block';
-
-  roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
-  renderSpeakingOrderBoxes();
   playerRoleEl.textContent = '';
-  nextPlayerBtn.disabled = false;
+  currentPlayerIndex = 0;
+  roundNumber++;
+  updateRoundInfo();
+  nextPlayerBtn.style.display = 'inline-block';
   showRoleBtn.style.display = 'none';
   discussionSection.classList.add('d-none');
   votingSection.classList.add('d-none');
-  resultSection.classList.add('d-none');
-  nextRoundBtn.style.display = 'none';
+  alert(`เริ่มรอบที่ ${roundNumber} กด Next Player เพื่อเริ่มพูดคนแรก`);
+}
 
-  showNextPlayerName();
+function checkGameEnd() {
+  if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
+    alert('เกมจบ! เจอ MR.WHITE และ UNDERCOVER ครบแล้ว');
+    nextRoundBtn.style.display = 'none';
+    nextPlayerBtn.style.display = 'none';
+    showRoleBtn.style.display = 'none';
+  } else if (players.length <= (totalMrWhite + totalUndercover)) {
+    alert('จำนวนผู้เล่นน้อยเกินไป เกมจบ');
+    nextRoundBtn.style.display = 'none';
+    nextPlayerBtn.style.display = 'none';
+    showRoleBtn.style.display = 'none';
+  }
 }
 
 function resetGame() {
-  // รีเซ็ตทุกอย่าง
   players = [];
   roles = [];
   playerWords = [];
   currentPlayerIndex = 0;
   roundNumber = 1;
-  totalMrWhite = 0;
-  totalUndercover = 0;
   foundMrWhiteCount = 0;
   foundUndercoverCount = 0;
-
-  playerListEl.innerHTML = '';
-  playerRoleEl.textContent = '';
-  roundInfoEl.textContent = '';
-  speakingOrderBoxes.innerHTML = '';
-  discussionTimer.textContent = '';
-  voteListEl.innerHTML = '';
-  voteResultEl.innerHTML = '';
-  voteSelections.clear();
-
   setupDiv.style.display = 'block';
   gameDiv.style.display = 'none';
-
-  startBtn.disabled = true;
+  renderPlayerList();
+  updateStartButton();
+  categoryInfo.textContent = '';
+  voteResultEl.innerHTML = '';
+  playerRoleEl.textContent = '';
+  loadingMsgEl.textContent = '';
   nextRoundBtn.style.display = 'none';
   discussionSection.classList.add('d-none');
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
-  categoryInfoEl.textContent = '';
+  nextPlayerBtn.style.display = 'inline-block';
+  showRoleBtn.style.display = 'none';
 }
 
-loadCategories();
+document.getElementById('mrWhiteCount').addEventListener('input', updateStartButton);
+document.getElementById('undercoverCount').addEventListener('input', updateStartButton);
 
-
+updateStartButton();
