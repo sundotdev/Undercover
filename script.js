@@ -27,7 +27,7 @@ const nextRoundBtn = document.getElementById('nextRoundBtn');
 let voteSelections = new Set();
 let discussionCountdown = null;
 
-// เพิ่มตัวแปรเก็บสถานะ MR.WHITE และ UNDERCOVER ที่ตั้งไว้และเจอแล้ว
+// ตัวแปรเก็บจำนวน MR.WHITE และ UNDERCOVER ที่ตั้งไว้ และจำนวนที่จับได้แล้ว
 let totalMrWhite = 0;
 let totalUndercover = 0;
 let foundMrWhiteCount = 0;
@@ -194,7 +194,6 @@ let showingRole = false;
 
 function showNextPlayerName() {
   if (currentPlayerIndex >= players.length) {
-    // เมื่อแจกบทบาทครบผู้เล่นทั้งหมดแล้ว
     alert('All players have seen their roles');
     nextPlayerBtn.disabled = true;
     discussionSection.classList.remove('d-none');
@@ -288,45 +287,42 @@ function confirmVote() {
   resultSection.classList.remove('d-none');
 
   let foundTarget = false;
-  let foundMrWhite = false;
-  let foundUndercover = false;
   let wrongVotes = [];
 
-  // เช็คคนที่ถูกโหวต
   voteSelections.forEach(i => {
     if (roles[i] === voteTarget) {
       foundTarget = true;
+      if (roles[i] === 'MR.WHITE') {
+        foundMrWhiteCount++;
+      }
+      if (roles[i] === 'UNDERCOVER') {
+        foundUndercoverCount++;
+      }
     }
-    if (roles[i] === 'MR.WHITE') foundMrWhite = true;
-    if (roles[i] === 'UNDERCOVER') foundUndercover = true;
-    if (roles[i] !== voteTarget) wrongVotes.push(players[i]);
+    if (roles[i] !== voteTarget) {
+      wrongVotes.push(players[i]);
+    }
   });
 
-  // ถ้าเจอ MR.WHITE หรือ UNDERCOVER ในโหวตที่ถูกต้องด้วย
-  if (voteTarget === 'MR.WHITE' && foundMrWhite) foundMrWhite = true;
-  if (voteTarget === 'UNDERCOVER' && foundUndercover) foundUndercover = true;
-
   let voteText = '';
-  if (foundTarget) {
-    // ถ้าเจอเป้าหมาย ให้เช็คว่าเจอครบสองคนหรือยัง
-    // เช็คว่ามี MR.WHITE และ UNDERCOVER ถูกจับครบหรือยัง
-    const mrWhiteFoundInVotes = roles.some((r, idx) => r === 'MR.WHITE' && voteSelections.has(idx));
-    const undercoverFoundInVotes = roles.some((r, idx) => r === 'UNDERCOVER' && voteSelections.has(idx));
 
-    if (mrWhiteFoundInVotes && undercoverFoundInVotes) {
-      voteText += `<p><b>Success! You found both <span class="role-mrwhite">MR.WHITE</span> and <span class="role-undercover">UNDERCOVER</span>. The game ends.</b></p>`;
-      nextRoundBtn.style.display = 'none';
+  if (foundTarget) {
+    if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
+      voteText += `<p><b>Success! You found all <span class="role-mrwhite">MR.WHITE</span> and <span class="role-undercover">UNDERCOVER</span>. The game ends.</b></p>`;
+      nextRoundBtn.textContent = 'Play Again';
+      nextRoundBtn.style.display = 'inline-block';
     } else {
-      voteText += `<p><b>You found ${voteTarget}, but need to find both MR.WHITE and UNDERCOVER to end the game. Continue playing.</b></p>`;
+      voteText += `<p><b>You found some ${voteTarget}, but need to find all MR.WHITE and UNDERCOVER to end the game. Continue playing.</b></p>`;
+      nextRoundBtn.textContent = 'Next Round';
       nextRoundBtn.style.display = 'inline-block';
     }
   } else {
     voteText += `<p><b>Wrong vote! Those who voted wrong must drink 1 shot.</b></p>`;
     voteText += `<p>Players voted wrong: ${wrongVotes.join(', ')}</p>`;
+    nextRoundBtn.textContent = 'Next Round';
     nextRoundBtn.style.display = 'inline-block';
   }
 
-  // แสดง Role เฉพาะคนที่ถูกโหวตเท่านั้น
   voteText += `<h5>Roles of voted players:</h5><ul>`;
   voteSelections.forEach(i => {
     voteText += `<li>${players[i]} = <span class="${roleClass(roles[i])}">${roleName(roles[i])}</span></li>`;
@@ -336,27 +332,29 @@ function confirmVote() {
   voteResultEl.innerHTML = voteText;
 }
 
-function nextRound() {
-  roundNumber++;
-  currentPlayerIndex = 0;
-
-  if (!assignRoles()) {
-    alert('Cannot start new round');
+nextRoundBtn.onclick = () => {
+  if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
     resetGame();
-    return;
+  } else {
+    roundNumber++;
+    currentPlayerIndex = 0;
+    if (!assignRoles()) {
+      alert('Cannot start new round');
+      resetGame();
+      return;
+    }
+    renderSpeakingOrderBoxes();
+    roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
+    playerRoleEl.textContent = '';
+    nextPlayerBtn.disabled = false;
+    showRoleBtn.style.display = 'none';
+    discussionSection.classList.add('d-none');
+    votingSection.classList.add('d-none');
+    resultSection.classList.add('d-none');
+    nextRoundBtn.style.display = 'none';
+    showNextPlayerName();
   }
-
-  renderSpeakingOrderBoxes();
-  roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
-  playerRoleEl.textContent = '';
-  nextPlayerBtn.disabled = false;
-  showRoleBtn.style.display = 'none';
-  discussionSection.classList.add('d-none');
-  votingSection.classList.add('d-none');
-  resultSection.classList.add('d-none');
-  nextRoundBtn.style.display = 'none';
-  showNextPlayerName();
-}
+};
 
 function resetGame() {
   if (discussionCountdown) clearInterval(discussionCountdown);
@@ -407,4 +405,3 @@ function startGame() {
 }
 
 loadCategories();
-
