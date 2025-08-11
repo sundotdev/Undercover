@@ -1,0 +1,60 @@
+body {
+  font-family: 'Kanit', sans-serif;
+  max-width: 480px;
+  margin: auto;
+  padding: 1rem;
+  background: #121212;
+  color: #eee;
+}
+h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #f39c12;
+}
+.role-text {
+  font-weight: 700;
+  color: #f39c12;
+  text-align: center;
+  margin: 1rem 0;
+  font-size: 1.25rem;
+  user-select: none;
+}
+.btn-wide {
+  width: 100%;
+}
+#speakingOrderBoxes {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+.speaker-box {
+  background-color: #f39c12;
+  color: black;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  user-select: none;
+  min-width: 60px;
+  text-align: center;
+}
+.speaker-box.start {
+  background-color: #27ae60;
+  color: white;
+}
+#voteList li {
+  cursor: pointer;
+}
+#voteList li.voted {
+  background-color: #f39c12;
+  color: black;
+  font-weight: 700;
+}
+#categoryInfo {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: #f39c12;
+  user-select: none;
+}
