@@ -27,7 +27,6 @@ const nextRoundBtn = document.getElementById('nextRoundBtn');
 let voteSelections = new Set();
 let discussionCountdown = null;
 
-// ตัวแปรเก็บจำนวน MR.WHITE และ UNDERCOVER ที่ตั้งไว้ และจำนวนที่จับได้แล้ว
 let totalMrWhite = 0;
 let totalUndercover = 0;
 let foundMrWhiteCount = 0;
@@ -146,6 +145,7 @@ function assignRoles() {
   for (let i = 0; i < citizenCount; i++) roles.push('COMMON PERSON');
   roles = shuffleArray(roles);
 
+  // MR.WHITE ไม่ควรเริ่มแจกก่อนใคร
   while (roles[0] === 'MR.WHITE') {
     roles = shuffleArray(roles);
   }
@@ -194,7 +194,7 @@ let showingRole = false;
 
 function showNextPlayerName() {
   if (currentPlayerIndex >= players.length) {
-    alert('All players have seen their roles');
+    // แจกบทบาทครบทุกคนแล้ว ให้เริ่มรอบ Discussion
     nextPlayerBtn.disabled = true;
     discussionSection.classList.remove('d-none');
     showRoleBtn.style.display = 'none';
@@ -259,6 +259,14 @@ function startVote() {
   voteSelections.clear();
   voteListEl.innerHTML = '';
   players.forEach((p, i) => {
+    // แสดงเฉพาะผู้เล่นที่ยังไม่ถูกจับ (ไม่รวมคนที่จับได้แล้ว)
+    if (
+      (roles[i] === 'MR.WHITE' && foundMrWhiteCount > 0) ||
+      (roles[i] === 'UNDERCOVER' && foundUndercoverCount > 0)
+    ) {
+      // ข้ามผู้เล่นที่จับได้แล้ว ไม่ให้โหวต
+      return;
+    }
     const li = document.createElement('li');
     li.textContent = p;
     li.className = 'list-group-item';
@@ -292,14 +300,9 @@ function confirmVote() {
   voteSelections.forEach(i => {
     if (roles[i] === voteTarget) {
       foundTarget = true;
-      if (roles[i] === 'MR.WHITE') {
-        foundMrWhiteCount++;
-      }
-      if (roles[i] === 'UNDERCOVER') {
-        foundUndercoverCount++;
-      }
-    }
-    if (roles[i] !== voteTarget) {
+      if (roles[i] === 'MR.WHITE') foundMrWhiteCount++;
+      if (roles[i] === 'UNDERCOVER') foundUndercoverCount++;
+    } else {
       wrongVotes.push(players[i]);
     }
   });
