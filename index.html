@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Undercover Game - หมวดไม่ซ้ำ</title>
+<style>
+  body { font-family: Kanit,sans-serif; max-width:480px; margin:auto; padding:1rem; background:#121212; color:#eee;}
+  h1 { text-align:center; margin-bottom:1rem; color:#f39c12;}
+  input, button { font-size:1rem; padding:0.5rem; margin:0.25rem 0; width:100%; border-radius:6px; border:none;}
+  button { background:#f39c12; color:#121212; font-weight:bold; cursor:pointer;}
+  button:hover { background:#e67e22;}
+  ul { list-style:none; padding-left:0;}
+  li { padding:0.3rem 0; border-bottom:1px solid #333;}
+  .player-item { display:flex; justify-content:space-between; align-items:center;}
+  .player-name { flex-grow:1; margin-right:0.5rem;}
+  .hidden { display:none;}
+  .role { font-weight:bold; color:#f39c12; text-align:center; margin:1rem 0; font-size:1.25rem; user-select:none;}
+  .center { text-align:center;}
+</style>
+</head>
+<body>
+<h1>เกม Undercover (หมวดไม่ซ้ำ)</h1>
+
+<div id="setup">
+  <input id="playerNameInput" type="text" placeholder="ใส่ชื่อลงทะเบียนผู้เล่น" />
+  <button onclick="addPlayer()">เพิ่มผู้เล่น</button>
+
+  <ul id="playerList"></ul>
+
+  <button onclick="startGame()" id="startBtn" disabled>เริ่มเกม</button>
+</div>
+
+<div id="game" class="hidden">
+  <div id="roundInfo" class="center"></div>
+  <div id="categoryInfo" class="center" style="font-style: italic; color: #bbb;"></div>
+  <div id="playerRole" class="role"></div>
+
+  <button onclick="showNextPlayer()">ดูบทบาทผู้เล่นถัดไป</button>
+  <button onclick="nextRound()" class="hidden" id="nextRoundBtn">เริ่มรอบใหม่</button>
+  <button onclick="resetGame()" class="hidden" id="resetBtn" style="margin-top:1rem; background:#c0392b;">เริ่มเกมใหม่</button>
+</div>
+
+<script>
+let players = JSON.parse(localStorage.getItem('uc_players') || '[]');
+let roles = [];
+let currentPlayerIndex = 0;
+let roundNumber = parseInt(localStorage.getItem('uc_round') || '1');
+let categories = null;
+let chosenCategory = null;
+let usedCategories = JSON.parse(localStorage.getItem('uc_usedCategories') || '[]');
+
+const playerListEl = document.getElementById('playerList');
+const startBtn = document.getElementById('startBtn');
+const setupDiv = document.getElementById('setup');
+const gameDiv = document.getElementById('game');
+const playerRoleEl = document.getElementById('playerRole');
+const roundInfoEl = document.getElementById('roundInfo');
+const nextRoundBtn = document.getElementById('nextRoundBtn');
+const resetBtn = document.getElementById('resetBtn');
+const categoryInfoEl = document.getElementById('categoryInfo');
+
+fetch('data.json')
+  .then(r => r.json())
+  .then(data => {
+    categories = data.categories;
+    renderPlayerList();
+    updateStartButton();
+  })
+  .catch(() => alert('โหลด data.json ไม่ได้'));
+
+function saveState() {
+  localStorage.setItem('uc_players', JSON.stringify(players));
+  localStorage.setItem('uc_round', roundNumber);
+  localStorage.setItem('uc_usedCategories', JSON.stringify(usedCategories));
+}
+
+function renderPlayerList() {
+  playerListEl.innerHTML = '';
+  players.forEach((p,i) => {
+    const li = document.createElement('li');
+    li.className = 'player-item';
+
+    const span = document.createElement('span');
+    span.textContent = p;
+    span.className = 'player-name';
+
+    const btnDel = document.createElement('button');
+    btnDel.textContent = 'ลบ';
+    btnDel.style.width = '50px';
+    btnDel.onclick = () => {
+      players.splice(i,1);
+      saveState();
+      renderPlayerList();
+      updateStartButton();
+    };
+
+    li.appendChild(span);
+    li.appendChild(btnDel);
+    playerListEl.appendChild(li);
+  });
+}
+
+function updateStartButton() {
+  startBtn.disabled = players.length < 3 || !categories;
+}
+
+function addPlayer() {
+  const input = document.getElementById('playerNameInput');
+  const name = input.value.trim();
+  if(name === '') return alert('กรุณาใส่ชื่อผู้เล่น');
+  if(players.includes(name)) return alert('ชื่อซ้ำ กรุณาเปลี่ยนชื่อ');
+  players.push(name);
+  input.value = '';
+  saveState();
+  renderPlayerList();
+  updateStartButton();
+}
+
+function shuffleArray(arr) {
+  for(let i=arr.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// เลือกหมวดหมู่ที่ยังไม่เคยใช้
+function pickNewCategory() {
+  const allCategories = Object.keys(categories);
+  const unused = allCategories.filter(c => !usedCategories.includes(c));
+  if(unused.length === 0) {
+    // รีเซ็ตถ้าใช้ครบทุกหมวด
+    usedCategories = [];
+    saveState();
+    return pickNewCategory();
+  }
+  const cat = unused[Math.floor(Math.random()*unused.length)];
+  usedCategories.push(cat);
+  saveState();
+  return cat;
+}
+
+function assignRoles() {
+  roles = [];
+  const total = players.length;
+  if(total < 3 || !categories) return false;
+
+  chosenCategory = pickNewCategory();
+  const pairs = categories[chosenCategory];
+  if(pairs.length === 0) {
+    alert('ไม่มีคู่คำในหมวดนี้');
+    return false;
+  }
+
+  const pair = pairs[Math.floor(Math.random()*pairs.length)];
+  const [word1, word2] = pair;
+
+  roles.push({role: 'Mr.White', word: '???'});
+  roles.push({role: 'Undercover', word: word1});
+  for(let i=2; i<total; i++) {
+    roles.push({role: 'Citizen', word: word2});
+  }
+
+  roles = shuffleArray(roles);
+  return true;
+}
+
+function startGame() {
+  if(players.length < 3) return alert('ต้องมีผู้เล่นอย่างน้อย 3 คน');
+  if(!categories) return alert('คำศัพท์ยังไม่โหลด');
+  if(!assignRoles()) return;
+
+  currentPlayerIndex = 0;
+  roundNumber = 1;
+  saveState();
+  renderGame();
+}
+
+function renderGame() {
+  setupDiv.classList.add('hidden');
+  gameDiv.classList.remove('hidden');
+
+  roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
+  categoryInfoEl.textContent = `หมวดหมู่: ${chosenCategory}`;
+  playerRoleEl.textContent = '';
+  nextRoundBtn.classList.add('hidden');
+  resetBtn.classList.add('hidden');
+}
+
+function showNextPlayer() {
+  if(currentPlayerIndex >= players.length) {
+    alert('ดูครบทุกคนแล้ว');
+    nextRoundBtn.classList.remove('hidden');
+    return;
+  }
+  const player = players[currentPlayerIndex];
+  const role = roles[currentPlayerIndex];
+  playerRoleEl.innerHTML = `<div><b>${player}</b></div><div>บทบาท: ${role.role}</div><div>คำ: <u>${role.word}</u></div>`;
+  currentPlayerIndex++;
+  if(currentPlayerIndex >= players.length) {
+    nextRoundBtn.classList.remove('hidden');
+  }
+}
+
+function nextRound() {
+  roundNumber++;
+  if(!assignRoles()) {
+    alert('ไม่สามารถเริ่มรอบใหม่ได้');
+    return;
+  }
+  currentPlayerIndex = 0;
+  saveState();
+  renderGame();
+}
+
+function resetGame() {
+  if(!confirm('ต้องการเริ่มเกมใหม่ใช่ไหม? ข้อมูลเก่าจะหายหมด')) return;
+  players = [];
+  roles = [];
+  currentPlayerIndex = 0;
+  roundNumber = 1;
+  chosenCategory = null;
+  usedCategories = [];
+  saveState();
+  renderPlayerList();
+  updateStartButton();
+  setupDiv.classList.remove('hidden');
+  gameDiv.classList.add('hidden');
+}
+
+renderPlayerList();
+updateStartButton();
+</script>
+</body>
+</html>
