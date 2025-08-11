@@ -294,27 +294,34 @@ function confirmVote() {
   let foundTarget = false;
   let wrongVotes = [];
 
-  // เก็บ index ผู้เล่นที่จะถูกลบ (ถูกโหวต)
+  // เก็บ index ของผู้เล่นที่จะถูกลบ
   let removedIndexes = [];
 
-  voteSelections.forEach(i => {
-    if (roles[i] === voteTarget) {
+  // voteSelections เป็น Set ของชื่อผู้เล่น => แปลงชื่อเป็น index
+  voteSelections.forEach(name => {
+    const idx = players.indexOf(name);
+    if (idx === -1) return; // ถ้าคนนี้โดนลบไปแล้วข้าม
+
+    if (roles[idx] === voteTarget) {
       foundTarget = true;
-      if (roles[i] === 'MR.WHITE') foundMrWhiteCount++;
-      if (roles[i] === 'UNDERCOVER') foundUndercoverCount++;
-      removedIndexes.push(i); // คนถูกจับออก
+      if (roles[idx] === 'MR.WHITE') foundMrWhiteCount++;
+      if (roles[idx] === 'UNDERCOVER') foundUndercoverCount++;
+      removedIndexes.push(idx);
     } else {
-      wrongVotes.push(players[i]);
+      wrongVotes.push(name);
     }
   });
 
-  // ลบผู้เล่นและบทบาทของคนที่ถูกจับออก เรียงจาก index มากไปน้อยเพื่อลบไม่ผิดตำแหน่ง
+  // ลบผู้เล่นและบทบาทที่ถูกจับออก เรียงจาก index มากไปน้อย
   removedIndexes.sort((a,b) => b - a);
   for (let idx of removedIndexes) {
     players.splice(idx, 1);
     roles.splice(idx, 1);
-    playerWords.splice(idx,1);
+    playerWords.splice(idx, 1);
   }
+
+  // เรียงลำดับการพูดใหม่
+  renderSpeakingOrderBoxes();
 
   let voteText = '';
 
@@ -336,8 +343,14 @@ function confirmVote() {
   }
 
   voteText += `<h5>Roles of voted players:</h5><ul>`;
-  voteSelections.forEach(i => {
-    voteText += `<li>${players[i] || '(ออกจากเกมแล้ว)'} = <span class="${roleClass(roles[i])}">${roleName(roles[i])}</span></li>`;
+  voteSelections.forEach(name => {
+    const idx = players.indexOf(name);
+    // idx อาจ = -1 ถ้าออกจากเกมแล้ว
+    if (idx === -1) {
+      voteText += `<li>${name} = (ออกจากเกมแล้ว)</li>`;
+    } else {
+      voteText += `<li>${name} = <span class="${roleClass(roles[idx])}">${roleName(roles[idx])}</span></li>`;
+    }
   });
   voteText += `</ul>`;
 
@@ -354,26 +367,25 @@ nextRoundBtn.onclick = () => {
     resetGame();
     return;
   }
-  
+
   roundNumber++;
   currentPlayerIndex = 0;
 
-  // เรียงลำดับการพูดใหม่ตามผู้เล่นที่เหลือ
-  // roles และ playerWords ยังเหมือนเดิม (ไม่เปลี่ยนคำหมวดหมู่)
-  
+  // เรียงลำดับการพูดใหม่ทุกครั้ง
   renderSpeakingOrderBoxes();
 
   roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
   playerRoleEl.textContent = '';
   nextPlayerBtn.disabled = false;
   showRoleBtn.style.display = 'none';
-  discussionSection.classList.remove('d-none'); // กลับไป discussion ใหม่
+  discussionSection.classList.remove('d-none');
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
   nextRoundBtn.style.display = 'none';
 
   showNextPlayerName();
-}
+};
+
 
 function startGame() {
   roundNumber = 1;
@@ -437,4 +449,5 @@ function resetGame() {
 }
 
 loadCategories();
+
 
