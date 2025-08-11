@@ -52,14 +52,12 @@ function renderPlayerList() {
   playerListEl.innerHTML = '';
   players.forEach((p, i) => {
     const li = document.createElement('li');
-    li.className = 'list-group-item d-flex justify-content-between align-items-center';
-
-    const span = document.createElement('span');
-    span.textContent = p;
+    li.className = 'flex justify-between items-center mb-1';
+    li.textContent = p;
 
     const btnDel = document.createElement('button');
     btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
-    btnDel.className = 'btn btn-sm btn-outline-danger';
+    btnDel.className = 'text-red-600 hover:text-red-800 ml-2';
     btnDel.title = 'ลบผู้เล่น';
     btnDel.onclick = () => {
       players.splice(i, 1);
@@ -67,7 +65,6 @@ function renderPlayerList() {
       checkStartButton();
     };
 
-    li.appendChild(span);
     li.appendChild(btnDel);
     playerListEl.appendChild(li);
   });
@@ -77,7 +74,12 @@ function checkStartButton() {
   const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
   const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
   const totalNeeded = mrWhiteCount + undercoverCount;
-  if (players.length >= totalNeeded + 1 && mrWhiteCount >= 1 && undercoverCount >= 1 && categoriesData !== null) {
+  if (
+    players.length >= totalNeeded + 1 &&
+    mrWhiteCount >= 1 &&
+    undercoverCount >= 1 &&
+    categoriesData !== null
+  ) {
     startBtn.disabled = false;
   } else {
     startBtn.disabled = true;
@@ -97,19 +99,22 @@ function shuffleArray(arr) {
 
 function roleName(role) {
   switch (role) {
-    case 'มิสเตอร์ไวท์': return 'ไอขาว';
-    case 'สายลับ': return 'สายลับ';
-    case 'พลเมือง': return 'คนแสนดี';
-    default: return role;
+    case 'มิสเตอร์ไวท์':
+      return 'ไอขาว';
+    case 'สายลับ':
+      return 'สายลับ';
+    case 'พลเมือง':
+      return 'คนแสนดี';
+    default:
+      return role;
   }
 }
 
-// เลือกหมวดคำแบบสุ่ม (key ปกติ)
 function getRandomCategory() {
+  if (!categoriesData) return null;
   const keys = Object.keys(categoriesData);
   const cat = keys[Math.floor(Math.random() * keys.length)];
-  const wordPairs = categoriesData[cat];
-  return { category: cat, wordPairs: wordPairs };
+  return { category: cat, wordPairs: categoriesData[cat] };
 }
 
 function assignRoles() {
@@ -146,7 +151,7 @@ function assignRoles() {
 
   categoryInfoEl.textContent = `หมวดคำ: ${catInfo.category}`;
 
-  // **เลือกคู่คำเดียวกัน 1 คู่ เพื่อแจกทุกคน**
+  // เลือกคู่คำเดียวกัน 1 คู่ เพื่อแจกทุกคน
   const chosenPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
 
   // แจกคำตามบทบาท
@@ -162,10 +167,9 @@ function assignRoles() {
   return true;
 }
 
-
 function renderSpeakingOrderBoxes() {
   speakingOrderBoxes.innerHTML = '';
-  let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+  let startIndex = roles.findIndex((r) => r !== 'มิสเตอร์ไวท์');
   for (let i = 0; i < players.length; i++) {
     const idx = (startIndex + i) % players.length;
     const box = document.createElement('div');
@@ -182,23 +186,23 @@ function showNextPlayerName() {
   if (currentPlayerIndex >= players.length) {
     alert('ดูบทบาทครบทุกคนแล้ว');
     nextPlayerBtn.disabled = true;
-    discussionSection.classList.remove('d-none');
-    showRoleBtn.classList.add('d-none');
+    discussionSection.classList.remove('hidden');
+    showRoleBtn.classList.add('hidden');
     playerRoleEl.textContent = '';
     return;
   }
-  let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+  let startIndex = roles.findIndex((r) => r !== 'มิสเตอร์ไวท์');
   const playerPos = (startIndex + currentPlayerIndex) % players.length;
   const player = players[playerPos];
   playerRoleEl.innerHTML = `<div>คนถัดไปคือ: <b>${player}</b></div><div>กดปุ่ม "ดูบทบาท" เพื่อดูบทบาทของคุณ</div>`;
   nextPlayerBtn.disabled = true;
-  showRoleBtn.classList.remove('d-none');
+  showRoleBtn.classList.remove('hidden');
   showingRole = false;
 }
 
 function showRole() {
   if (showingRole) return;
-  let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
+  let startIndex = roles.findIndex((r) => r !== 'มิสเตอร์ไวท์');
   const playerPos = (startIndex + currentPlayerIndex) % players.length;
   const role = roles[playerPos];
   const word = playerWords[playerPos] || '???';
@@ -208,20 +212,20 @@ function showRole() {
   showingRole = true;
   currentPlayerIndex++;
   nextPlayerBtn.disabled = false;
-  showRoleBtn.classList.add('d-none');
+  showRoleBtn.classList.add('hidden');
 }
 
 let voteSelections = new Set();
 
 function startVote() {
-  discussionSection.classList.add('d-none');
-  votingSection.classList.remove('d-none');
+  discussionSection.classList.add('hidden');
+  votingSection.classList.remove('hidden');
   voteSelections.clear();
   voteListEl.innerHTML = '';
   players.forEach((p, i) => {
     const li = document.createElement('li');
     li.textContent = p;
-    li.className = 'list-group-item';
+    li.className = 'cursor-pointer p-1 hover:bg-gray-200 rounded';
     li.onclick = () => {
       if (voteSelections.has(i)) {
         voteSelections.delete(i);
@@ -240,14 +244,19 @@ function confirmVote() {
     alert('กรุณาเลือกผู้เล่นที่ต้องการโหวต');
     return;
   }
-  votingSection.classList.add('d-none');
-  resultSection.classList.remove('d-none');
+  votingSection.classList.add('hidden');
+  resultSection.classList.remove('hidden');
+
+  const voteTarget = document.querySelector('input[name="voteTarget"]:checked').value;
 
   let found = false;
   let wrongVotes = [];
 
-  voteSelections.forEach(i => {
-    if (roles[i] === 'มิสเตอร์ไวท์' || roles[i] === 'สายลับ') {
+  voteSelections.forEach((i) => {
+    if (
+      (voteTarget === 'mrWhite' && roles[i] === 'มิสเตอร์ไวท์') ||
+      (voteTarget === 'undercover' && roles[i] === 'สายลับ')
+    ) {
       found = true;
     } else {
       wrongVotes.push(players[i]);
@@ -255,14 +264,17 @@ function confirmVote() {
   });
 
   let voteText = '';
+
   if (found) {
-    voteText += `<p><b>ผลโหวตเจอ ไอขาว หรือ สายลับ! เกมจบ</b></p>`;
+    voteText += `<p class="font-bold text-green-700">ผลโหวตเจอ ${
+      voteTarget === 'mrWhite' ? 'ไอขาว (Mr.White)' : 'สายลับ (Undercover)'
+    }! เกมจบ</p>`;
   } else {
-    voteText += `<p><b>โหวตผิด! คนที่โหวตผิดต้องดื่ม 1 ดริ้ง</b></p>`;
+    voteText += `<p class="font-bold text-red-700">โหวตผิด! ผู้เล่นที่โหวตผิดต้องดื่ม 1 ดริ้ง</p>`;
     voteText += `<p>ผู้เล่นที่โหวตผิด: ${wrongVotes.join(', ')}</p>`;
   }
 
-  voteText += `<h5>บทบาทของผู้เล่น:</h5><ul>`;
+  voteText += `<h5 class="mt-4 font-semibold">บทบาทของผู้เล่น:</h5><ul class="list-disc list-inside">`;
   players.forEach((p, i) => {
     voteText += `<li>${p} = ${roleName(roles[i])}</li>`;
   });
@@ -283,10 +295,10 @@ function nextRound() {
   roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
   playerRoleEl.textContent = '';
   nextPlayerBtn.disabled = false;
-  showRoleBtn.classList.add('d-none');
-  discussionSection.classList.add('d-none');
-  votingSection.classList.add('d-none');
-  resultSection.classList.add('d-none');
+  showRoleBtn.classList.add('hidden');
+  discussionSection.classList.add('hidden');
+  votingSection.classList.add('hidden');
+  resultSection.classList.add('hidden');
   showNextPlayerName();
 }
 
@@ -296,16 +308,16 @@ function resetGame() {
   playerWords = [];
   currentPlayerIndex = 0;
   roundNumber = 1;
-  setupDiv.classList.remove('d-none');
-  gameDiv.classList.add('d-none');
+  setupDiv.classList.remove('hidden');
+  gameDiv.classList.add('hidden');
   playerListEl.innerHTML = '';
   categoryInfoEl.textContent = '';
   playerRoleEl.textContent = '';
   nextPlayerBtn.disabled = false;
-  showRoleBtn.classList.add('d-none');
-  discussionSection.classList.add('d-none');
-  votingSection.classList.add('d-none');
-  resultSection.classList.add('d-none');
+  showRoleBtn.classList.add('hidden');
+  discussionSection.classList.add('hidden');
+  votingSection.classList.add('hidden');
+  resultSection.classList.add('hidden');
   startBtn.disabled = true;
 }
 
@@ -315,19 +327,18 @@ function startGame() {
     return;
   }
   if (!assignRoles()) return;
-  setupDiv.classList.add('d-none');
-  gameDiv.classList.remove('d-none');
+  setupDiv.classList.add('hidden');
+  gameDiv.classList.remove('hidden');
   renderSpeakingOrderBoxes();
   roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
   playerRoleEl.textContent = '';
   currentPlayerIndex = 0;
   nextPlayerBtn.disabled = false;
-  showRoleBtn.classList.add('d-none');
-  discussionSection.classList.add('d-none');
-  votingSection.classList.add('d-none');
-  resultSection.classList.add('d-none');
+  showRoleBtn.classList.add('hidden');
+  discussionSection.classList.add('hidden');
+  votingSection.classList.add('hidden');
+  resultSection.classList.add('hidden');
   showNextPlayerName();
 }
 
 loadCategories();
-
