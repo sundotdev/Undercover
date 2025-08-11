@@ -141,6 +141,7 @@ function assignRoles() {
     roles = shuffleArray(roles);
   }
 
+  // เลือกหมวดหมู่คำ
   const catInfo = getRandomCategoryAndSub();
   if (!catInfo) {
     alert('ไม่พบข้อมูลหมวดหมู่คำ');
@@ -162,21 +163,22 @@ function assignRoles() {
     do {
       pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
       attempts++;
-      if (attempts > 1000) break; 
+      if (attempts > 1000) break;
     } while (usedPairsSet.has(pair.join('|')));
     usedPairsSet.add(pair.join('|'));
 
     if (r === 'มิสเตอร์ไวท์') {
-      const whiteWord = whiteWords[Math.floor(Math.random()*whiteWords.length)];
-      playerWords.push(whiteWord);
+      // ไอขาว ไม่ได้คำจริง
+      playerWords.push('??? ไม่มีคำ');
     } else if (r === 'สายลับ') {
-      playerWords.push(pair[1]);
+      playerWords.push(pair[1]); // คำสายลับ (Undercover)
     } else {
-      playerWords.push(pair[0]);
+      playerWords.push(pair[0]); // คำพลเมือง (Ordinary person)
     }
   }
   return true;
 }
+
 
 function renderSpeakingOrderBoxes() {
   speakingOrderBoxes.innerHTML = '';
@@ -344,3 +346,4 @@ function startGame() {
 }
 
 loadCategories();
+
