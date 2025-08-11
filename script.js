@@ -24,7 +24,14 @@ const categoryInfoEl = document.getElementById('categoryInfo');
 const discussionTimer = document.getElementById('discussionTimer');
 const nextRoundBtn = document.getElementById('nextRoundBtn');
 
+let voteSelections = new Set();
 let discussionCountdown = null;
+
+// เพิ่มตัวแปรเก็บสถานะ MR.WHITE และ UNDERCOVER ที่ตั้งไว้และเจอแล้ว
+let totalMrWhite = 0;
+let totalUndercover = 0;
+let foundMrWhiteCount = 0;
+let foundUndercoverCount = 0;
 
 async function loadCategories() {
   loadingMsg.textContent = 'Loading categories...';
@@ -124,19 +131,21 @@ function assignRoles() {
   roles = [];
   playerWords = [];
   const totalPlayers = players.length;
-  const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
-  const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
-  const citizenCount = totalPlayers - mrWhiteCount - undercoverCount;
+  totalMrWhite = parseInt(document.getElementById('mrWhiteCount').value);
+  totalUndercover = parseInt(document.getElementById('undercoverCount').value);
+  foundMrWhiteCount = 0;
+  foundUndercoverCount = 0;
+
+  const citizenCount = totalPlayers - totalMrWhite - totalUndercover;
   if (citizenCount < 0) {
     alert('Too many roles for players');
     return false;
   }
-  for (let i = 0; i < mrWhiteCount; i++) roles.push('MR.WHITE');
-  for (let i = 0; i < undercoverCount; i++) roles.push('UNDERCOVER');
+  for (let i = 0; i < totalMrWhite; i++) roles.push('MR.WHITE');
+  for (let i = 0; i < totalUndercover; i++) roles.push('UNDERCOVER');
   for (let i = 0; i < citizenCount; i++) roles.push('COMMON PERSON');
   roles = shuffleArray(roles);
 
-  // first speaker must not be MR.WHITE
   while (roles[0] === 'MR.WHITE') {
     roles = shuffleArray(roles);
   }
@@ -185,6 +194,7 @@ let showingRole = false;
 
 function showNextPlayerName() {
   if (currentPlayerIndex >= players.length) {
+    // เมื่อแจกบทบาทครบผู้เล่นทั้งหมดแล้ว
     alert('All players have seen their roles');
     nextPlayerBtn.disabled = true;
     discussionSection.classList.remove('d-none');
@@ -247,79 +257,79 @@ function startVote() {
   }
   discussionSection.classList.add('d-none');
   votingSection.classList.remove('d-none');
+  voteSelections.clear();
   voteListEl.innerHTML = '';
-
   players.forEach((p, i) => {
     const li = document.createElement('li');
-    li.className = 'list-group-item d-flex align-items-center';
-
-    const radio = document.createElement('input');
-    radio.type = 'radio';
-    radio.name = 'votePlayer';
-    radio.value = i;
-    radio.id = 'votePlayer' + i;
-    radio.className = 'form-check-input me-2';
-
-    const label = document.createElement('label');
-    label.htmlFor = radio.id;
-    label.textContent = p;
-    label.style.userSelect = 'none';
-    label.className = 'mb-0';
-
-    li.appendChild(radio);
-    li.appendChild(label);
+    li.textContent = p;
+    li.className = 'list-group-item';
+    li.onclick = () => {
+      if (voteSelections.has(i)) {
+        voteSelections.delete(i);
+        li.classList.remove('voted');
+      } else {
+        voteSelections.add(i);
+        li.classList.add('voted');
+      }
+    };
     voteListEl.appendChild(li);
   });
 }
 
 function confirmVote() {
-  const selectedRadio = document.querySelector('input[name="votePlayer"]:checked');
-  if (!selectedRadio) {
-    alert('Please select one player to vote');
+  if (voteSelections.size === 0) {
+    alert('Please select player(s) to vote');
     return;
   }
 
-  const voteIndex = parseInt(selectedRadio.value);
-  const voteTargetInput = document.querySelector('input[name="voteTarget"]:checked');
-  if (!voteTargetInput) {
-    alert('Please select a role to vote for (MR.WHITE or UNDERCOVER)');
-    return;
-  }
-  const voteTarget = voteTargetInput.value.toUpperCase();
+  const voteTarget = document.querySelector('input[name="voteTarget"]:checked').value;
 
   votingSection.classList.add('d-none');
   resultSection.classList.remove('d-none');
 
-  const votedPlayerRole = roles[voteIndex];
-  const votedPlayerName = players[voteIndex];
+  let found = false;
+  let wrongVotes = [];
+
+  // ลบผู้เล่นที่ถูกโหวตและอัปเดตสถานะหากถูกเจอ MR.WHITE หรือ UNDERCOVER
+  voteSelections.forEach(i => {
+    const votedRole = roles[i];
+    const votedName = players[i];
+    if (votedRole === voteTarget) {
+      found = true;
+      if (votedRole === 'MR.WHITE') foundMrWhiteCount++;
+      else if (votedRole === 'UNDERCOVER') foundUndercoverCount++;
+
+      // ลบผู้เล่นและบทบาทออกจากเกม
+      players.splice(i,1);
+      roles.splice(i,1);
+      playerWords.splice(i,1);
+    } else {
+      wrongVotes.push(players[i]);
+    }
+  });
+
   let voteText = '';
 
-  if (votedPlayerRole === voteTarget) {
-    voteText += `<p><b>Success! You found <span class="${roleClass(voteTarget)}">${voteTarget}</span> - <span class="fw-bold">${votedPlayerName}</span>.</b></p>`;
-    players.splice(voteIndex, 1);
-    roles.splice(voteIndex, 1);
-    playerWords.splice(voteIndex, 1);
-    voteText += `<p><i>Player <b>${votedPlayerName}</b> has been removed from the game.</i></p>`;
+  if (found) {
+    voteText += `<p><b>Success! You found <span class="${roleClass(voteTarget)}">${voteTarget}</span>.</b></p>`;
+    voteText += `<p>Players voted wrong: ${wrongVotes.length > 0 ? wrongVotes.join(', ') : 'None'}</p>`;
 
-    const hasMrWhite = roles.includes('MR.WHITE');
-    const hasUndercover = roles.includes('UNDERCOVER');
-
-    if (!hasMrWhite && !hasUndercover) {
-      voteText += `<p class="text-success fw-bold">Game Over! All MR.WHITE and UNDERCOVER are found.</p>`;
+    // ตรวจสอบว่าเจอครบทั้ง MR.WHITE และ UNDERCOVER หรือยัง
+    if (foundMrWhiteCount === totalMrWhite && foundUndercoverCount === totalUndercover) {
+      voteText += `<p><b>All special roles found! Game Over.</b></p>`;
       nextRoundBtn.style.display = 'none';
     } else {
-      voteText += `<p>Game continues. Find remaining special roles.</p>`;
+      voteText += `<p>Keep playing. Remaining MR.WHITE: ${totalMrWhite - foundMrWhiteCount}, UNDERCOVER: ${totalUndercover - foundUndercoverCount}</p>`;
       nextRoundBtn.style.display = 'inline-block';
     }
   } else {
     voteText += `<p><b>Wrong vote! Those who voted wrong must drink 1 shot.</b></p>`;
-    voteText += `<p>Player voted: <b>${votedPlayerName}</b> is <span class="${roleClass(votedPlayerRole)}">${roleName(votedPlayerRole)}</span>.</p>`;
-    voteText += `<p>Game continues.</p>`;
+    voteText += `<p>Players voted wrong: ${wrongVotes.join(', ')}</p>`;
     nextRoundBtn.style.display = 'inline-block';
   }
 
   voteText += `<h5>Player roles:</h5><ul>`;
-  players.forEach((p, i) => {
+  players.forEach((p,i) => {
     voteText += `<li>${p} = <span class="${roleClass(roles[i])}">${roleName(roles[i])}</span></li>`;
   });
   voteText += `</ul>`;
@@ -330,11 +340,13 @@ function confirmVote() {
 function nextRound() {
   roundNumber++;
   currentPlayerIndex = 0;
+
   if (!assignRoles()) {
     alert('Cannot start new round');
     resetGame();
     return;
   }
+
   renderSpeakingOrderBoxes();
   roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
   playerRoleEl.textContent = '';
@@ -354,6 +366,10 @@ function resetGame() {
   playerWords = [];
   currentPlayerIndex = 0;
   roundNumber = 1;
+  totalMrWhite = 0;
+  totalUndercover = 0;
+  foundMrWhiteCount = 0;
+  foundUndercoverCount = 0;
   setupDiv.style.display = '';
   gameDiv.style.display = 'none';
   playerListEl.innerHTML = '';
@@ -365,6 +381,7 @@ function resetGame() {
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
   startBtn.disabled = true;
+  voteSelections.clear();
   discussionTimer.textContent = '';
   nextRoundBtn.style.display = 'none';
 }
