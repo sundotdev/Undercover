@@ -32,6 +32,7 @@ let totalUndercover = 0;
 let foundMrWhiteCount = 0;
 let foundUndercoverCount = 0;
 
+// โหลด categories จากไฟล์ data.json
 async function loadCategories() {
   loadingMsg.textContent = 'Loading categories...';
   try {
@@ -256,111 +257,141 @@ function startVote() {
   }
   discussionSection.classList.add('d-none');
   votingSection.classList.remove('d-none');
-  voteSelections.clear();
+
   voteListEl.innerHTML = '';
+  voteSelections.clear();
+
   players.forEach((p, i) => {
-    // แสดงเฉพาะผู้เล่นที่ยังไม่ถูกจับ (ไม่รวมคนที่จับได้แล้ว)
-    if (
-      (roles[i] === 'MR.WHITE' && foundMrWhiteCount > 0) ||
-      (roles[i] === 'UNDERCOVER' && foundUndercoverCount > 0)
-    ) {
-      // ข้ามผู้เล่นที่จับได้แล้ว ไม่ให้โหวต
-      return;
-    }
     const li = document.createElement('li');
-    li.textContent = p;
     li.className = 'list-group-item';
-    li.onclick = () => {
-      if (voteSelections.has(i)) {
-        voteSelections.delete(i);
-        li.classList.remove('voted');
-      } else {
-        voteSelections.add(i);
-        li.classList.add('voted');
-      }
-    };
+    li.textContent = p;
+    li.onclick = () => toggleVote(p, li);
     voteListEl.appendChild(li);
   });
 }
 
-function confirmVote() {
-  if (voteSelections.size === 0) {
-    alert('Please select player(s) to vote');
-    return;
+function toggleVote(name, liEl) {
+  if (voteSelections.has(name)) {
+    voteSelections.delete(name);
+    liEl.classList.remove('voted');
+  } else {
+    voteSelections.add(name);
+    liEl.classList.add('voted');
   }
+}
+
+function confirmVote() {
+  if (voteSelections.size === 0) return alert('Please select at least one player to vote.');
 
   const voteTarget = document.querySelector('input[name="voteTarget"]:checked').value;
 
-  votingSection.classList.add('d-none');
-  resultSection.classList.remove('d-none');
+  // หาผู้เล่นที่มี role นั้น
+  const indicesOfTarget = roles
+    .map((r, i) => (r === voteTarget ? i : -1))
+    .filter(i => i !== -1);
+  const targetPlayers = indicesOfTarget.map(i => players[i]);
 
-  let foundTarget = false;
-  let wrongVotes = [];
-
-  voteSelections.forEach(i => {
-    if (roles[i] === voteTarget) {
-      foundTarget = true;
-      if (roles[i] === 'MR.WHITE') foundMrWhiteCount++;
-      if (roles[i] === 'UNDERCOVER') foundUndercoverCount++;
-    } else {
-      wrongVotes.push(players[i]);
+  // เช็คว่าผู้เล่นที่โหวตตรงกับ target ทั้งหมดหรือไม่
+  let foundTarget = true;
+  for (let tp of targetPlayers) {
+    if (!voteSelections.has(tp)) {
+      foundTarget = false;
+      break;
     }
-  });
+  }
+  // เช็คว่าโหวตเกินหรือน้อยกว่า target หรือไม่
+  if (voteSelections.size !== targetPlayers.length) foundTarget = false;
 
+  // นับจำนวนที่จับได้
+  if (foundTarget) {
+    if (voteTarget === 'MR.WHITE') foundMrWhiteCount++;
+    else if (voteTarget === 'UNDERCOVER') foundUndercoverCount++;
+  }
+
+  // แสดงผลลัพธ์โหวต
   let voteText = '';
-
   if (foundTarget) {
     if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
       voteText += `<p><b>Success! You found all <span class="role-mrwhite">MR.WHITE</span> and <span class="role-undercover">UNDERCOVER</span>. The game ends.</b></p>`;
       nextRoundBtn.textContent = 'Play Again';
-      nextRoundBtn.style.display = 'inline-block';
     } else {
       voteText += `<p><b>You found some ${voteTarget}, but need to find all MR.WHITE and UNDERCOVER to end the game. Continue playing.</b></p>`;
       nextRoundBtn.textContent = 'Next Round';
-      nextRoundBtn.style.display = 'inline-block';
     }
   } else {
     voteText += `<p><b>Wrong vote! Those who voted wrong must drink 1 shot.</b></p>`;
-    voteText += `<p>Players voted wrong: ${wrongVotes.join(', ')}</p>`;
+    voteText += `<p>Players voted wrong: ${[...voteSelections].join(', ')}</p>`;
     nextRoundBtn.textContent = 'Next Round';
-    nextRoundBtn.style.display = 'inline-block';
   }
-
-  voteText += `<h5>Roles of voted players:</h5><ul>`;
-  voteSelections.forEach(i => {
-    voteText += `<li>${players[i]} = <span class="${roleClass(roles[i])}">${roleName(roles[i])}</span></li>`;
-  });
-  voteText += `</ul>`;
 
   voteResultEl.innerHTML = voteText;
+
+  votingSection.classList.add('d-none');
+  resultSection.classList.remove('d-none');
+  nextRoundBtn.style.display = 'inline-block';
 }
 
-nextRoundBtn.onclick = () => {
+function nextRound() {
   if (foundMrWhiteCount >= totalMrWhite && foundUndercoverCount >= totalUndercover) {
+    alert('Game over! You found all MR.WHITE and UNDERCOVER.');
     resetGame();
-  } else {
-    roundNumber++;
-    currentPlayerIndex = 0;
-    if (!assignRoles()) {
-      alert('Cannot start new round');
-      resetGame();
-      return;
-    }
-    renderSpeakingOrderBoxes();
-    roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
-    playerRoleEl.textContent = '';
-    nextPlayerBtn.disabled = false;
-    showRoleBtn.style.display = 'none';
-    discussionSection.classList.add('d-none');
-    votingSection.classList.add('d-none');
-    resultSection.classList.add('d-none');
-    nextRoundBtn.style.display = 'none';
-    showNextPlayerName();
+    return;
   }
-};
+
+  roundNumber++;
+  currentPlayerIndex = 0;
+
+  if (!assignRoles()) {
+    alert('Cannot start new round');
+    resetGame();
+    return;
+  }
+
+  renderSpeakingOrderBoxes();
+
+  roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
+  playerRoleEl.textContent = '';
+  nextPlayerBtn.disabled = false;
+  showRoleBtn.style.display = 'none';
+  discussionSection.classList.add('d-none');
+  votingSection.classList.add('d-none');
+  resultSection.classList.add('d-none');
+  nextRoundBtn.style.display = 'none';
+
+  showNextPlayerName();
+}
+
+function startGame() {
+  roundNumber = 1;
+  currentPlayerIndex = 0;
+  foundMrWhiteCount = 0;
+  foundUndercoverCount = 0;
+
+  totalMrWhite = parseInt(document.getElementById('mrWhiteCount').value);
+  totalUndercover = parseInt(document.getElementById('undercoverCount').value);
+
+  if (!assignRoles()) {
+    alert('Failed to assign roles');
+    return;
+  }
+  setupDiv.style.display = 'none';
+  gameDiv.style.display = 'block';
+
+  roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
+  renderSpeakingOrderBoxes();
+  playerRoleEl.textContent = '';
+  nextPlayerBtn.disabled = false;
+  showRoleBtn.style.display = 'none';
+  discussionSection.classList.add('d-none');
+  votingSection.classList.add('d-none');
+  resultSection.classList.add('d-none');
+  nextRoundBtn.style.display = 'none';
+
+  showNextPlayerName();
+}
 
 function resetGame() {
-  if (discussionCountdown) clearInterval(discussionCountdown);
+  // รีเซ็ตทุกอย่าง
   players = [];
   roles = [];
   playerWords = [];
@@ -370,41 +401,25 @@ function resetGame() {
   totalUndercover = 0;
   foundMrWhiteCount = 0;
   foundUndercoverCount = 0;
-  setupDiv.style.display = '';
-  gameDiv.style.display = 'none';
-  playerListEl.innerHTML = '';
-  categoryInfoEl.textContent = '';
-  playerRoleEl.textContent = '';
-  nextPlayerBtn.disabled = false;
-  showRoleBtn.style.display = 'none';
-  discussionSection.classList.add('d-none');
-  votingSection.classList.add('d-none');
-  resultSection.classList.add('d-none');
-  startBtn.disabled = true;
-  voteSelections.clear();
-  discussionTimer.textContent = '';
-  nextRoundBtn.style.display = 'none';
-}
 
-function startGame() {
-  if (players.length < 3) {
-    alert('At least 3 players are required');
-    return;
-  }
-  if (!assignRoles()) return;
-  setupDiv.style.display = 'none';
-  gameDiv.style.display = '';
-  renderSpeakingOrderBoxes();
-  roundInfoEl.textContent = `Round ${roundNumber} / Players: ${players.length}`;
+  playerListEl.innerHTML = '';
   playerRoleEl.textContent = '';
-  currentPlayerIndex = 0;
-  nextPlayerBtn.disabled = false;
-  showRoleBtn.style.display = 'none';
+  roundInfoEl.textContent = '';
+  speakingOrderBoxes.innerHTML = '';
+  discussionTimer.textContent = '';
+  voteListEl.innerHTML = '';
+  voteResultEl.innerHTML = '';
+  voteSelections.clear();
+
+  setupDiv.style.display = 'block';
+  gameDiv.style.display = 'none';
+
+  startBtn.disabled = true;
+  nextRoundBtn.style.display = 'none';
   discussionSection.classList.add('d-none');
   votingSection.classList.add('d-none');
   resultSection.classList.add('d-none');
-  nextRoundBtn.style.display = 'none';
-  showNextPlayerName();
+  categoryInfoEl.textContent = '';
 }
 
 loadCategories();
