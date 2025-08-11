@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>เกม Undercover - หา Mr.White และ Undercover</title>
+  <title>เกม Undercover - หา Mr.White & Undercover</title>
 
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -11,28 +11,112 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
 
   <style>
+    /* --- โทนสีม่วงเข้ม + ลึกลับจาก Pinterest --- */
+    :root {
+      --primary-color: #6a0dad; /* ม่วงเข้ม */
+      --primary-light: #a883d6; /* ม่วงอ่อน */
+      --dark-bg: #1e1e2f; /* ดำอมม่วงเข้ม */
+      --text-light: #e6e6fa; /* สีอ่อน */
+      --accent-color: #d7aefb; /* สีม่วงพาสเทล */
+      --danger-color: #e63946;
+      --success-color: #2a9d8f;
+    }
     body {
-      background: #f8f9fa;
+      background-color: var(--dark-bg);
+      color: var(--text-light);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
-    .speaker-box {
-      padding: 0.5rem 1rem;
-      border: 1px solid #dee2e6;
-      border-radius: 0.375rem;
-      text-align: center;
-      font-weight: 500;
-      user-select: none;
+    h1, h4 {
+      color: var(--accent-color);
+      font-weight: 700;
+      text-shadow: 0 0 5px var(--primary-color);
     }
-    .speaker-box.start {
-      background-color: #ffc107;
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-light);
+      border-color: var(--primary-light);
+    }
+    .btn-danger {
+      background-color: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+    .btn-danger:hover {
+      background-color: #c32c3a;
+      border-color: #c32c3a;
+    }
+    .btn-success {
+      background-color: var(--success-color);
+      border-color: var(--success-color);
+    }
+    .btn-success:hover {
+      background-color: #24786a;
+      border-color: #24786a;
+    }
+    .card {
+      background: #2c2c44;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(106, 13, 173, 0.3);
+    }
+    input.form-control, select.form-select {
+      background-color: #3a3a59;
+      border: none;
+      color: var(--text-light);
+      border-radius: 10px;
+    }
+    input.form-control::placeholder {
+      color: var(--primary-light);
+      opacity: 0.7;
+    }
+    label, .form-check-label {
+      color: var(--accent-color);
+      font-weight: 600;
+    }
+    .list-group-item {
+      background: #3a3a59;
+      color: var(--text-light);
+      border: none;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .list-group-item:hover, .list-group-item.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    .list-group-item.voted {
+      background-color: var(--danger-color);
+      font-weight: 700;
+      color: white;
+      cursor: default;
+    }
+    #playerRole {
+      min-height: 120px;
+      font-size: 1.2rem;
+      line-height: 1.4;
+      background-color: #3a3a59;
+      border-radius: 15px;
+      padding: 1rem;
+      box-shadow: 0 0 15px var(--primary-color);
+    }
+    .form-check-input:checked + .form-check-label {
+      color: var(--primary-light);
       font-weight: 700;
     }
-    .speaker-box.voted {
-      background-color: #f8d7da;
-      font-weight: 600;
-      cursor: default !important;
-    }
-    .btn-custom {
-      min-width: 120px;
+    @media (max-width: 576px) {
+      #speakingOrderBoxes {
+        flex-direction: column;
+        align-items: center;
+      }
+      .list-group-item {
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
@@ -40,114 +124,121 @@
 
 <div class="container py-4">
 
-  <h1 class="mb-4 text-center fw-bold text-primary">
-    <i class="fa-solid fa-user-secret"></i> เกม Undercover - หา Mr.White และ Undercover
+  <h1 class="text-center mb-4">
+    <i class="fa-solid fa-user-secret"></i> เกม Undercover - หา Mr.White & Undercover
   </h1>
 
-  <div id="loadingMsg" class="mb-3 text-danger fw-semibold text-center"></div>
-
   <!-- Setup Section -->
-  <div id="setup" class="card shadow-sm mb-4">
-    <div class="card-body">
-      <h4 class="card-title mb-3">ตั้งค่าผู้เล่นและบทบาท</h4>
+  <div id="setup" class="card p-4 mb-4">
+    <h4 class="mb-3 text-center">ตั้งค่าผู้เล่นและบทบาท</h4>
 
-      <div class="input-group mb-3">
-        <input type="text" id="playerNameInput" class="form-control" placeholder="พิมพ์ชื่อผู้เล่น แล้วกดเพิ่ม" />
-        <button class="btn btn-primary" onclick="addPlayer()">
-          <i class="fa-solid fa-user-plus"></i> เพิ่มผู้เล่น
-        </button>
-      </div>
-
-      <ul id="playerList" class="list-group mb-3" style="max-height: 150px; overflow-y: auto;"></ul>
-
-      <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3">
-          <label for="mrWhiteCount" class="form-label fw-semibold">จำนวน Mr.White</label>
-          <input type="number" id="mrWhiteCount" min="1" max="5" value="1" class="form-control" />
-        </div>
-        <div class="col-6 col-md-3">
-          <label for="undercoverCount" class="form-label fw-semibold">จำนวน Undercover</label>
-          <input type="number" id="undercoverCount" min="1" max="5" value="1" class="form-control" />
-        </div>
-      </div>
-
-      <button id="startBtn" onclick="startGame()" disabled class="btn btn-success w-100 btn-lg fw-bold">
-        <i class="fa-solid fa-play"></i> เริ่มเกม
+    <div class="input-group mb-3">
+      <input type="text" id="playerNameInput" class="form-control" placeholder="พิมพ์ชื่อผู้เล่น แล้วกดเพิ่ม" autocomplete="off" />
+      <button class="btn btn-primary" id="addPlayerBtn" type="button" aria-label="เพิ่มผู้เล่น">
+        <i class="fa-solid fa-user-plus"></i> เพิ่มผู้เล่น
       </button>
     </div>
+
+    <ul id="playerList" class="list-group mb-3" style="max-height: 180px; overflow-y: auto;"></ul>
+
+    <div class="row g-3 mb-3 text-center">
+      <div class="col-6 col-md-4">
+        <label for="mrWhiteCount" class="form-label">จำนวน Mr.White</label>
+        <select id="mrWhiteCount" class="form-select">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-4">
+        <label for="undercoverCount" class="form-label">จำนวน Undercover</label>
+        <select id="undercoverCount" class="form-select">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="startBtn" disabled class="btn btn-success w-100 btn-lg fw-bold" type="button" aria-label="เริ่มเกม">
+      <i class="fa-solid fa-play"></i> เริ่มเกม
+    </button>
   </div>
 
   <!-- Game Section -->
-  <div id="game" class="card shadow-sm d-none">
-    <div class="card-body">
-      <h4 class="text-center text-info mb-3" id="categoryInfo"></h4>
-      <h5 class="text-center text-secondary mb-3" id="roundInfo"></h5>
+  <div id="game" class="card p-4 d-none">
+    <h4 class="text-center mb-3" id="categoryInfo"></h4>
+    <h5 class="text-center text-muted mb-4" id="roundInfo"></h5>
 
-      <div id="playerRole" class="alert alert-light text-center fs-5 fw-semibold py-4" style="min-height: 6rem;"></div>
+    <div id="playerRole" class="mb-4 text-center"></div>
 
-      <div class="d-flex justify-content-center gap-3 mb-3 flex-wrap">
-        <button id="showRoleBtn" onclick="showRole()" class="btn btn-primary btn-custom d-none">
-          <i class="fa-solid fa-eye"></i> ดูบทบาท
-        </button>
-        <button id="nextPlayerBtn" onclick="showNextPlayerName()" class="btn btn-warning btn-custom">
-          <i class="fa-solid fa-forward"></i> ผู้เล่นถัดไป
-        </button>
+    <div class="d-flex justify-content-center gap-3 flex-wrap mb-4" id="speakingOrderBoxes"></div>
+
+    <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+      <button id="nextPlayerBtn" class="btn btn-primary btn-lg px-4" type="button" aria-label="ดูผู้เล่นถัดไป">
+        <i class="fa-solid fa-forward"></i> ผู้เล่นถัดไป
+      </button>
+      <button id="showRoleBtn" class="btn btn-warning btn-lg px-4 d-none" type="button" aria-label="ดูบทบาท">
+        <i class="fa-solid fa-eye"></i> ดูบทบาท
+      </button>
+    </div>
+
+    <!-- Discussion Phase -->
+    <div id="discussionSection" class="text-center mb-4 d-none">
+      <p class="fs-5 fw-semibold mb-3">ช่วงพูดคุยและเตรียมโหวต</p>
+      <button id="startVoteBtn" class="btn btn-purple btn-lg px-4" style="background-color: var(--primary-color); color: white;" type="button" aria-label="เริ่มโหวต">
+        <i class="fa-solid fa-comments"></i> เริ่มโหวต
+      </button>
+    </div>
+
+    <!-- Voting Phase -->
+    <div id="votingSection" class="d-none">
+      <p class="fs-5 fw-semibold mb-2 text-center">เลือกผู้เล่นที่ต้องการโหวต</p>
+      <p class="text-center mb-3" style="color: var(--accent-color); font-weight: 600;">
+        <i class="fa-solid fa-info-circle"></i> เลือกว่าจะโหวตหา <b>Mr.White</b> หรือ <b>Undercover</b> แล้วเลือกผู้เล่นที่ต้องการโหวตจากรายการด้านล่าง
+      </p>
+
+      <div class="d-flex justify-content-center gap-5 mb-4 flex-wrap fs-5 fw-semibold text-center text-white">
+        <div>
+          <input class="form-check-input" type="radio" name="voteTarget" id="voteMrWhite" value="mrWhite" checked />
+          <label class="form-check-label" for="voteMrWhite">หา Mr.White</label>
+        </div>
+        <div>
+          <input class="form-check-input" type="radio" name="voteTarget" id="voteUndercover" value="undercover" />
+          <label class="form-check-label" for="voteUndercover">หา Undercover</label>
+        </div>
       </div>
 
-      <div id="speakingOrderBoxes" class="d-flex flex-wrap gap-2 justify-content-center mb-4"></div>
+      <ul id="voteList" class="list-group mb-4" style="max-height: 250px; overflow-y: auto;"></ul>
 
-      <section id="discussionSection" class="text-center d-none mb-4">
-        <p class="fs-5 fw-semibold mb-3">ช่วงพูดคุย - เตรียมโหวต</p>
-        <button onclick="startVote()" class="btn btn-purple btn-lg px-4" style="background-color: #6f42c1; color: white;">
-          <i class="fa-solid fa-comments"></i> เริ่มโหวต
+      <div class="text-center">
+        <button id="confirmVoteBtn" class="btn btn-danger btn-lg px-5 fw-bold" type="button" aria-label="ยืนยันโหวต">
+          <i class="fa-solid fa-check"></i> ยืนยันโหวต
         </button>
-      </section>
-
-      <section id="votingSection" class="d-none mb-4">
-        <p class="fs-5 fw-semibold mb-2">เลือกโหวตหา:</p>
-
-        <div class="mb-3 d-flex justify-content-center gap-4 fs-5 fw-semibold">
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="voteTarget" id="voteMrWhite" value="mrWhite" checked />
-            <label class="form-check-label" for="voteMrWhite">Mr.White</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="voteTarget" id="voteUndercover" value="undercover" />
-            <label class="form-check-label" for="voteUndercover">Undercover</label>
-          </div>
-        </div>
-
-        <ul id="voteList" class="list-group mb-3" style="max-height: 180px; overflow-y: auto;"></ul>
-
-        <div class="text-center">
-          <button onclick="confirmVote()" class="btn btn-danger btn-lg fw-bold px-5">
-            <i class="fa-solid fa-check"></i> ยืนยันโหวต
-          </button>
-        </div>
-      </section>
-
-      <section id="resultSection" class="d-none p-3 bg-light rounded border">
-        <div id="voteResult" class="mb-3"></div>
-        <div class="d-flex justify-content-center gap-3">
-          <button onclick="nextRound()" class="btn btn-success btn-lg btn-custom fw-semibold">
-            <i class="fa-solid fa-forward"></i> รอบถัดไป
-          </button>
-          <button onclick="resetGame()" class="btn btn-secondary btn-lg btn-custom fw-semibold">
-            <i class="fa-solid fa-rotate-left"></i> เริ่มเกมใหม่
-          </button>
-        </div>
-      </section>
-
+      </div>
     </div>
-  </div>
 
+    <!-- Result Phase -->
+    <div id="resultSection" class="d-none p-3 rounded" style="background-color: #3a3a59; box-shadow: 0 0 20px var(--primary-color); color: white;">
+      <div id="voteResult" class="mb-4 fs-5"></div>
+      <div class="d-flex justify-content-center gap-3 flex-wrap">
+        <button id="nextRoundBtn" class="btn btn-success btn-lg px-4 fw-semibold" type="button" aria-label="รอบถัดไป">
+          <i class="fa-solid fa-forward"></i> รอบถัดไป
+        </button>
+        <button id="resetGameBtn" class="btn btn-secondary btn-lg px-4 fw-semibold" type="button" aria-label="เริ่มเกมใหม่">
+          <i class="fa-solid fa-rotate-left"></i> เริ่มเกมใหม่
+        </button>
+      </div>
+    </div>
+
+  </div>
 </div>
 
-<!-- Bootstrap 5 JS Bundle (Popper+Bootstrap JS) -->
+<!-- Bootstrap 5 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  // --- JavaScript logic ---
+  // ตัวแปรหลัก
   let players = [];
   let roles = [];
   let playerWords = [];
@@ -155,6 +246,7 @@
   let roundNumber = 1;
   let categoriesData = null;
 
+  // อ้างอิง element
   const playerListEl = document.getElementById('playerList');
   const startBtn = document.getElementById('startBtn');
   const setupDiv = document.getElementById('setup');
@@ -169,35 +261,47 @@
   const voteListEl = document.getElementById('voteList');
   const resultSection = document.getElementById('resultSection');
   const voteResultEl = document.getElementById('voteResult');
-  const loadingMsg = document.getElementById('loadingMsg');
+  const startVoteBtn = document.getElementById('startVoteBtn');
+  const confirmVoteBtn = document.getElementById('confirmVoteBtn');
+  const nextRoundBtn = document.getElementById('nextRoundBtn');
+  const resetGameBtn = document.getElementById('resetGameBtn');
+  const mrWhiteCountEl = document.getElementById('mrWhiteCount');
+  const undercoverCountEl = document.getElementById('undercoverCount');
   const categoryInfoEl = document.getElementById('categoryInfo');
 
+  // โหลด data.json
   async function loadCategories() {
-    loadingMsg.textContent = 'กำลังโหลดข้อมูลหมวดหมู่คำ...';
     try {
       const res = await fetch('data.json');
       if (!res.ok) throw new Error('โหลดไฟล์ data.json ไม่สำเร็จ');
       const json = await res.json();
       categoriesData = json.categories;
-      loadingMsg.textContent = '';
       checkStartButton();
     } catch (e) {
-      loadingMsg.textContent = 'โหลดข้อมูลหมวดหมู่คำล้มเหลว';
+      alert('โหลดข้อมูลหมวดหมู่คำล้มเหลว กรุณาตรวจสอบไฟล์ data.json');
       console.error(e);
     }
   }
 
+  // เพิ่มผู้เล่น
   function addPlayer() {
     const input = document.getElementById('playerNameInput');
     const name = input.value.trim();
-    if (name === '') return alert('กรุณาใส่ชื่อผู้เล่น');
-    if (players.includes(name)) return alert('ชื่อซ้ำ กรุณาเปลี่ยนชื่อ');
+    if (name === '') {
+      alert('กรุณาใส่ชื่อผู้เล่น');
+      return;
+    }
+    if (players.includes(name)) {
+      alert('ชื่อซ้ำ กรุณาเปลี่ยนชื่อใหม่');
+      return;
+    }
     players.push(name);
     input.value = '';
     renderPlayerList();
     checkStartButton();
   }
 
+  // แสดงรายชื่อผู้เล่น
   function renderPlayerList() {
     playerListEl.innerHTML = '';
     players.forEach((p, i) => {
@@ -206,9 +310,9 @@
       li.textContent = p;
 
       const btnDel = document.createElement('button');
-      btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
       btnDel.className = 'btn btn-sm btn-outline-danger';
       btnDel.title = 'ลบผู้เล่น';
+      btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
       btnDel.onclick = () => {
         players.splice(i, 1);
         renderPlayerList();
@@ -220,9 +324,10 @@
     });
   }
 
+  // ตรวจสอบปุ่มเริ่มเกม
   function checkStartButton() {
-    const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
-    const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
+    const mrWhiteCount = parseInt(mrWhiteCountEl.value);
+    const undercoverCount = parseInt(undercoverCountEl.value);
     const totalNeeded = mrWhiteCount + undercoverCount;
     if (
       players.length >= totalNeeded + 1 &&
@@ -236,76 +341,72 @@
     }
   }
 
-  document.getElementById('mrWhiteCount').addEventListener('change', checkStartButton);
-  document.getElementById('undercoverCount').addEventListener('change', checkStartButton);
-
+  // สุ่ม
   function shuffleArray(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+    for (let i = arr.length -1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i+1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
   }
 
+  // แปลงชื่อบทบาทสั้นๆ
   function roleName(role) {
-    switch (role) {
-      case 'มิสเตอร์ไวท์':
-        return 'ไอขาว';
-      case 'สายลับ':
-        return 'สายลับ';
-      case 'พลเมือง':
-        return 'คนแสนดี';
-      default:
-        return role;
+    switch(role) {
+      case 'มิสเตอร์ไวท์': return 'Mr.White';
+      case 'สายลับ': return 'Undercover';
+      case 'พลเมือง': return 'พลเมือง';
+      default: return role;
     }
   }
 
+  // เลือกหมวดหมู่คำสุ่ม
   function getRandomCategory() {
     if (!categoriesData) return null;
     const keys = Object.keys(categoriesData);
-    const cat = keys[Math.floor(Math.random() * keys.length)];
+    const cat = keys[Math.floor(Math.random()*keys.length)];
     return { category: cat, wordPairs: categoriesData[cat] };
   }
 
+  // กำหนดบทบาท + คำ
   function assignRoles() {
     roles = [];
     playerWords = [];
     const totalPlayers = players.length;
-    const mrWhiteCount = parseInt(document.getElementById('mrWhiteCount').value);
-    const undercoverCount = parseInt(document.getElementById('undercoverCount').value);
+    const mrWhiteCount = parseInt(mrWhiteCountEl.value);
+    const undercoverCount = parseInt(undercoverCountEl.value);
     const citizenCount = totalPlayers - mrWhiteCount - undercoverCount;
     if (citizenCount < 0) {
       alert('จำนวนบทบาทเกินจำนวนผู้เล่น');
       return false;
     }
-    for (let i = 0; i < mrWhiteCount; i++) roles.push('มิสเตอร์ไวท์');
-    for (let i = 0; i < undercoverCount; i++) roles.push('สายลับ');
-    for (let i = 0; i < citizenCount; i++) roles.push('พลเมือง');
+    for(let i=0; i<mrWhiteCount; i++) roles.push('มิสเตอร์ไวท์');
+    for(let i=0; i<undercoverCount; i++) roles.push('สายลับ');
+    for(let i=0; i<citizenCount; i++) roles.push('พลเมือง');
     roles = shuffleArray(roles);
 
-    // คนเริ่มพูดไม่ใช่ Mr.White
-    while (roles[0] === 'มิสเตอร์ไวท์') {
+    // คนเริ่มพูดต้องไม่ใช่ Mr.White
+    while(roles[0] === 'มิสเตอร์ไวท์') {
       roles = shuffleArray(roles);
     }
 
     const catInfo = getRandomCategory();
-    if (!catInfo) {
+    if(!catInfo) {
       alert('ไม่พบข้อมูลหมวดหมู่คำ');
       return false;
     }
     const wordPairs = catInfo.wordPairs;
-    if (!wordPairs || wordPairs.length === 0) {
+    if(!wordPairs || wordPairs.length === 0) {
       alert('หมวดคำนี้ไม่มีคำให้เล่น');
       return false;
     }
-
     categoryInfoEl.textContent = `หมวดคำ: ${catInfo.category}`;
 
-    // เลือกคู่คำเดียวกัน 1 คู่ เพื่อแจกทุกคน
-    const chosenPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
+    // เลือกคู่คำสุ่มคู่เดียว
+    const chosenPair = wordPairs[Math.floor(Math.random()*wordPairs.length)];
 
     // แจกคำตามบทบาท
-    for (let r of roles) {
+    for(let r of roles) {
       if (r === 'มิสเตอร์ไวท์') {
         playerWords.push('??? ไม่มีคำ');
       } else if (r === 'สายลับ') {
@@ -317,14 +418,16 @@
     return true;
   }
 
+  // แสดงลำดับผู้พูด
   function renderSpeakingOrderBoxes() {
     speakingOrderBoxes.innerHTML = '';
-    let startIndex = roles.findIndex((r) => r !== 'มิสเตอร์ไวท์');
+    // เริ่มจากคนที่ไม่ใช่ Mr.White
+    let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
     for (let i = 0; i < players.length; i++) {
       const idx = (startIndex + i) % players.length;
       const box = document.createElement('div');
-      box.className = 'speaker-box';
-      if (i === 0) box.classList.add('start');
+      box.className = 'badge bg-primary fs-6 px-3 py-2';
+      if (i === 0) box.classList.add('border', 'border-warning', 'fw-bold');
       box.textContent = `${i + 1}. ${players[idx]}`;
       speakingOrderBoxes.appendChild(box);
     }
@@ -332,119 +435,185 @@
 
   let showingRole = false;
 
+  // แสดงชื่อผู้เล่นถัดไป
   function showNextPlayerName() {
     if (currentPlayerIndex >= players.length) {
-      alert('ดูบทบาทครบทุกคนแล้ว');
+      // แสดงช่วงพูดคุย
       nextPlayerBtn.disabled = true;
-      discussionSection.classList.remove('d-none');
       showRoleBtn.classList.add('d-none');
-      playerRoleEl.textContent = '';
+      discussionSection.classList.remove('d-none');
+      playerRoleEl.innerHTML = '<p class="text-center fst-italic">ดูบทบาทครบทุกคนแล้ว สามารถพูดคุยก่อนโหวต</p>';
       return;
     }
-    let startIndex = roles.findIndex((r) => r !== 'มิสเตอร์ไวท์');
+    let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
     const playerPos = (startIndex + currentPlayerIndex) % players.length;
     const player = players[playerPos];
-    playerRoleEl.innerHTML = `<div>คนถัดไปคือ: <b>${player}</b></div><div>กดปุ่ม "ดูบทบาท" เพื่อดูบทบาทของคุณ</div>`;
+    playerRoleEl.innerHTML = `
+      <div class="mb-2">คนถัดไปคือ: <b>${player}</b></div>
+      <div class="fst-italic">กดปุ่ม "ดูบทบาท" เพื่อดูบทบาทของคุณ</div>
+    `;
     nextPlayerBtn.disabled = true;
     showRoleBtn.classList.remove('d-none');
     showingRole = false;
   }
 
+  // แสดงบทบาทผู้เล่น
   function showRole() {
     if (showingRole) return;
-    let startIndex = roles.findIndex((r) => r !== 'มิสเตอร์ไวท์');
+    let startIndex = roles.findIndex(r => r !== 'มิสเตอร์ไวท์');
     const playerPos = (startIndex + currentPlayerIndex) % players.length;
     const role = roles[playerPos];
     const word = playerWords[playerPos] || '???';
 
-    playerRoleEl.innerHTML = `<div>บทบาทของคุณคือ: <b>${roleName(role)}</b></div><div>คำที่ได้: <b>${word}</b></div>`;
-
+    playerRoleEl.innerHTML = `
+      <div>บทบาทของคุณคือ: <b>${roleName(role)}</b></div>
+      <div>คำที่ได้: <b>${word}</b></div>
+    `;
     showingRole = true;
     currentPlayerIndex++;
     nextPlayerBtn.disabled = false;
     showRoleBtn.classList.add('d-none');
   }
 
-  let voteSelections = new Set();
+  // เก็บการเลือกโหวต
+  let voteTarget = 'mrWhite'; // เริ่มต้นโหวตหา Mr.White
+  let voteSelection = null;
 
-  function startVote() {
-    discussionSection.classList.add('d-none');
-    votingSection.classList.remove('d-none');
-    voteSelections.clear();
+  // สร้าง list รายชื่อโหวตเป็น radio
+  function renderVoteList() {
     voteListEl.innerHTML = '';
     players.forEach((p, i) => {
       const li = document.createElement('li');
-      li.textContent = p;
-      li.className = 'list-group-item list-group-item-action';
-      li.style.cursor = 'pointer';
-      li.onclick = () => {
-        if (voteSelections.has(i)) {
-          voteSelections.delete(i);
-          li.classList.remove('voted');
-        } else {
-          voteSelections.add(i);
-          li.classList.add('voted');
-        }
+      li.className = 'list-group-item';
+
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'votePlayer';
+      radio.id = 'vote_' + i;
+      radio.value = i;
+      radio.className = 'form-check-input me-2';
+      radio.style.cursor = 'pointer';
+
+      radio.onclick = () => {
+        voteSelection = i;
+        // เน้นผู้ถูกเลือก
+        [...voteListEl.children].forEach(child => child.classList.remove('active'));
+        li.classList.add('active');
       };
+
+      const label = document.createElement('label');
+      label.htmlFor = 'vote_' + i;
+      label.className = 'form-check-label';
+      label.style.cursor = 'pointer';
+      label.textContent = p;
+
+      li.appendChild(radio);
+      li.appendChild(label);
       voteListEl.appendChild(li);
     });
   }
 
+  // เริ่มโหวต
+  function startVote() {
+    discussionSection.classList.add('d-none');
+    votingSection.classList.remove('d-none');
+    voteSelection = null;
+    renderVoteList();
+    // เลือกเป้าหมายโหวตเป็น mrWhite เริ่มต้น
+    document.getElementById('voteMrWhite').checked = true;
+    voteTarget = 'mrWhite';
+  }
+
+  // ยืนยันโหวต
   function confirmVote() {
-    if (voteSelections.size === 0) {
+    if (voteSelection === null) {
       alert('กรุณาเลือกผู้เล่นที่ต้องการโหวต');
       return;
     }
     votingSection.classList.add('d-none');
     resultSection.classList.remove('d-none');
 
-    const voteTarget = document.querySelector('input[name="voteTarget"]:checked').value;
+    let targetRole = voteTarget === 'mrWhite' ? 'มิสเตอร์ไวท์' : 'สายลับ';
 
-    let found = false;
-    let wrongVotes = [];
-
-    voteSelections.forEach((i) => {
-      if (
-        (voteTarget === 'mrWhite' && roles[i] === 'มิสเตอร์ไวท์') ||
-        (voteTarget === 'undercover' && roles[i] === 'สายลับ')
-      ) {
-        found = true;
-      } else {
-        wrongVotes.push(players[i]);
-      }
-    });
+    // ตรวจว่าโหวตถูกหรือไม่
+    let voteHit = (roles[voteSelection] === targetRole);
 
     let voteText = '';
-
-    if (found) {
-      voteText += `<p class="fw-bold text-success fs-5">ผลโหวตเจอ ${
-        voteTarget === 'mrWhite' ? 'ไอขาว (Mr.White)' : 'สายลับ (Undercover)'
-      }! เกมจบ</p>`;
+    if (voteHit) {
+      voteText += `<p class="text-success fs-5"><i class="fa-solid fa-check-circle"></i> โหวตเจอ <b>${roleName(targetRole)}</b>! <br>ผู้เล่น <b>${players[voteSelection]}</b> ถูกกำจัด</p>`;
+      // ตัดบทบาทที่ถูกโหวตออกจากเกม
+      players.splice(voteSelection,1);
+      roles.splice(voteSelection,1);
+      playerWords.splice(voteSelection,1);
     } else {
-      voteText += `<p class="fw-bold text-danger fs-5">โหวตผิด! ผู้เล่นที่โหวตผิดต้องดื่ม 1 ดริ้ง</p>`;
-      voteText += `<p>ผู้เล่นที่โหวตผิด: ${wrongVotes.join(', ')}</p>`;
+      voteText += `<p class="text-danger fs-5"><i class="fa-solid fa-times-circle"></i> โหวตผิด! ผู้เล่นที่โหวตผิดต้องดื่ม 1 ดริ้ง</p>`;
+      voteText += `<p>ผู้เล่นที่ถูกโหวต: <b>${players[voteSelection]}</b> แต่ไม่ใช่ ${roleName(targetRole)}</p>`;
     }
 
-    voteText += `<h6 class="mt-4 fw-semibold">บทบาทของผู้เล่น:</h6><ul>`;
+    // แสดงบทบาทที่เหลือ
+    voteText += `<hr><h6>บทบาทของผู้เล่นที่เหลือ:</h6><ul>`;
     players.forEach((p, i) => {
       voteText += `<li>${p} = ${roleName(roles[i])}</li>`;
     });
     voteText += `</ul>`;
 
     voteResultEl.innerHTML = voteText;
+
+    // ตรวจสอบจบเกม
+    checkGameEnd();
   }
 
+  // ตรวจสอบจบเกม
+  function checkGameEnd() {
+    let mrWhiteLeft = roles.filter(r => r === 'มิสเตอร์ไวท์').length;
+    let undercoverLeft = roles.filter(r => r === 'สายลับ').length;
+    let citizenLeft = roles.filter(r => r === 'พลเมือง').length;
+
+    if (mrWhiteLeft === 0) {
+      // ถ้า Mr.White หมดเกมต่อหา Undercover ต่อได้
+      if (undercoverLeft === 0) {
+        voteResultEl.innerHTML += `<p class="fs-4 text-warning mt-3">🎉 เกมจบ: พลเมืองชนะ! ไม่มี Mr.White และ Undercover เหลือ</p>`;
+        nextRoundBtn.disabled = true;
+        nextPlayerBtn.disabled = true;
+        showRoleBtn.disabled = true;
+      } else {
+        voteResultEl.innerHTML += `<p class="fs-5 text-info mt-3">Mr.White หมดแล้ว! รอบนี้จะโหวตหา Undercover ต่อ</p>`;
+        // เปลี่ยนโหมดโหวต
+        voteTarget = 'undercover';
+        nextRoundBtn.disabled = false;
+      }
+    } else {
+      // Mr.White ยังอยู่ ต้องโหวตก่อน
+      nextRoundBtn.disabled = false;
+    }
+  }
+
+  // เริ่มรอบใหม่
   function nextRound() {
     roundNumber++;
     currentPlayerIndex = 0;
-    if (!assignRoles()) {
-      alert('ไม่สามารถเริ่มรอบใหม่ได้');
-      resetGame();
-      return;
-    }
+    discussionSection.classList.remove('d-none');
+    votingSection.classList.add('d-none');
+    resultSection.classList.add('d-none');
+    showNextPlayerName();
     renderSpeakingOrderBoxes();
     roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
-    playerRoleEl.textContent = '';
+    nextPlayerBtn.disabled = false;
+    showRoleBtn.classList.add('d-none');
+  }
+
+  // เริ่มเกม
+  function startGame() {
+    if(players.length < 3) {
+      alert('ผู้เล่นต้องมากกว่า 2 คนขึ้นไป');
+      return;
+    }
+    if(!assignRoles()) return;
+    setupDiv.classList.add('d-none');
+    gameDiv.classList.remove('d-none');
+    roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
+    currentPlayerIndex = 0;
+    renderSpeakingOrderBoxes();
     nextPlayerBtn.disabled = false;
     showRoleBtn.classList.add('d-none');
     discussionSection.classList.add('d-none');
@@ -453,6 +622,7 @@
     showNextPlayerName();
   }
 
+  // รีเซ็ตเกมทั้งหมด
   function resetGame() {
     players = [];
     roles = [];
@@ -472,30 +642,32 @@
     startBtn.disabled = true;
   }
 
-  function startGame() {
-    if (players.length < 3) {
-      alert('ผู้เล่นต้องมากกว่า 2 คนขึ้นไป');
-      return;
-    }
-    if (!assignRoles()) return;
-    setupDiv.classList.add('d-none');
-    gameDiv.classList.remove('d-none');
-    renderSpeakingOrderBoxes();
-    roundInfoEl.textContent = `รอบที่ ${roundNumber} / ผู้เล่น ${players.length} คน`;
-    playerRoleEl.textContent = '';
-    currentPlayerIndex = 0;
-    nextPlayerBtn.disabled = false;
-    showRoleBtn.classList.add('d-none');
-    discussionSection.classList.add('d-none');
-    votingSection.classList.add('d-none');
-    resultSection.classList.add('d-none');
-    showNextPlayerName();
-  }
+  // Event listeners
+  document.getElementById('addPlayerBtn').onclick = addPlayer;
+  document.getElementById('playerNameInput').addEventListener('keydown', e => {
+    if(e.key === 'Enter') addPlayer();
+  });
+  mrWhiteCountEl.addEventListener('change', checkStartButton);
+  undercoverCountEl.addEventListener('change', checkStartButton);
+  startBtn.onclick = startGame;
+  nextPlayerBtn.onclick = showNextPlayerName;
+  showRoleBtn.onclick = showRole;
+  startVoteBtn.onclick = startVote;
+  confirmVoteBtn.onclick = confirmVote;
+  nextRoundBtn.onclick = nextRound;
+  resetGameBtn.onclick = resetGame;
 
-  // เริ่มโหลด data.json
+  // เลือกโหวตเป้าหมาย
+  document.getElementById('voteMrWhite').addEventListener('change', e => {
+    if(e.target.checked) voteTarget = 'mrWhite';
+  });
+  document.getElementById('voteUndercover').addEventListener('change', e => {
+    if(e.target.checked) voteTarget = 'undercover';
+  });
+
   loadCategories();
-
 </script>
 
 </body>
 </html>
+
